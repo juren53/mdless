@@ -286,14 +286,7 @@ impl MarkdownRenderer {
         let fg_color = syntect_style.foreground;
         style = style.fg(Color::Rgb(fg_color.r, fg_color.g, fg_color.b));
 
-        // Convert background color if it's not transparent
-        if syntect_style.background.a > 0 {
-            let bg_color = syntect_style.background;
-            style = style.bg(Color::Rgb(bg_color.r, bg_color.g, bg_color.b));
-        } else {
-            // Use a dark background for code blocks
-            style = style.bg(Color::Rgb(30, 30, 30));
-        }
+        // No background color - let the terminal's default background show through
 
         // Convert font style
         if syntect_style

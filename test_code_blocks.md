@@ -7,10 +7,10 @@ This is a test file to showcase the improved code block rendering.
 ```rust
 fn main() {
     println!("Hello, world!");
-    
+
     let numbers = vec![1, 2, 3, 4, 5];
     let sum: i32 = numbers.iter().sum();
-    
+
     println!("Sum: {}", sum);
 }
 
@@ -33,13 +33,13 @@ impl User {
 
 ```javascript
 function calculateSum(numbers) {
-    return numbers.reduce((acc, num) => acc + num, 0);
+  return numbers.reduce((acc, num) => acc + num, 0);
 }
 
 const users = [
-    { name: "Alice", age: 30 },
-    { name: "Bob", age: 25 },
-    { name: "Charlie", age: 35 }
+  { name: "Alice", age: 30 },
+  { name: "Bob", age: 25 },
+  { name: "Charlie", age: 35 },
 ];
 
 console.log("Users:", users);
@@ -56,7 +56,7 @@ def fibonacci(n):
 class Calculator:
     def __init__(self):
         self.history = []
-    
+
     def add(self, a, b):
         result = a + b
         self.history.append(f"{a} + {b} = {result}")
