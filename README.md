@@ -79,6 +79,27 @@ cargo fmt
 cargo clippy
 ```
 
+### Pre-commit hooks
+
+The project includes a pre-commit hook that automatically runs formatting checks, linting, compilation verification, and tests before each commit. To install the hook:
+
+```bash
+# The hook is already installed if you're working in this repository
+# To reinstall or update:
+./scripts/install-hooks.sh
+```
+
+The pre-commit hook will run:
+- `cargo fmt --check` - Verify code formatting
+- `cargo clippy` - Run linter with warnings as errors
+- `cargo check` - Verify compilation
+- `cargo test` - Run all tests
+
+To bypass the hook for a specific commit (not recommended):
+```bash
+git commit --no-verify
+```
+
 ## License
 
 MIT License
