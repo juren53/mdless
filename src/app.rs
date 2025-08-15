@@ -123,35 +123,75 @@ impl App {
 
     fn handle_key_event(&mut self, key_code: KeyCode) {
         match key_code {
+            // Quit
             KeyCode::Char('q') => {
                 self.should_quit = true;
             }
+            // Reload file
             KeyCode::Char('r') => {
                 if let Err(e) = self.reload_file() {
                     eprintln!("Failed to reload file: {}", e);
                 }
             }
+            // Vim-style movement: up
             KeyCode::Up | KeyCode::Char('k') => {
                 self.scroll_up();
             }
+            // Vim-style movement: down
             KeyCode::Down | KeyCode::Char('j') => {
                 self.scroll_down();
             }
-            KeyCode::PageUp => {
+            // Vim-style movement: half page up
+            KeyCode::Char('u') => {
+                self.scroll_half_page_up();
+            }
+            // Vim-style movement: half page down
+            KeyCode::Char('d') => {
+                self.scroll_half_page_down();
+            }
+            // Vim-style movement: full page up
+            KeyCode::PageUp | KeyCode::Char('b') => {
+                self.scroll_page_up();
+            }
+            // Vim-style movement: full page down
+            KeyCode::PageDown | KeyCode::Char('f') => {
+                self.scroll_page_down();
+            }
+            // Vim-style movement: top of document
+            KeyCode::Home | KeyCode::Char('g') => {
+                self.scroll_to_top();
+            }
+            // Vim-style movement: bottom of document
+            KeyCode::End | KeyCode::Char('G') => {
+                self.scroll_to_bottom();
+            }
+            // Vim-style movement: move up 5 lines
+            KeyCode::Char('K') => {
+                for _ in 0..5 {
+                    self.scroll_up();
+                }
+            }
+            // Vim-style movement: move down 5 lines
+            KeyCode::Char('J') => {
+                for _ in 0..5 {
+                    self.scroll_down();
+                }
+            }
+            // Vim-style movement: move to middle of screen
+            KeyCode::Char('M') => {
+                self.scroll_to_middle();
+            }
+            // Vim-style movement: move up 10 lines (alternative to page up)
+            KeyCode::Char('U') => {
                 for _ in 0..10 {
                     self.scroll_up();
                 }
             }
-            KeyCode::PageDown => {
+            // Vim-style movement: move down 10 lines (alternative to page down)
+            KeyCode::Char('D') => {
                 for _ in 0..10 {
                     self.scroll_down();
                 }
-            }
-            KeyCode::Home => {
-                self.scroll_offset = 0;
-            }
-            KeyCode::End => {
-                self.scroll_offset = self.content_length.saturating_sub(1);
             }
             _ => {}
         }
@@ -165,6 +205,40 @@ impl App {
         if self.scroll_offset < self.content_length.saturating_sub(1) {
             self.scroll_offset += 1;
         }
+    }
+
+    fn scroll_half_page_up(&mut self) {
+        let half_page = 10; // Could be made configurable based on terminal height
+        self.scroll_offset = self.scroll_offset.saturating_sub(half_page);
+    }
+
+    fn scroll_half_page_down(&mut self) {
+        let half_page = 10; // Could be made configurable based on terminal height
+        let new_offset = self.scroll_offset.saturating_add(half_page);
+        self.scroll_offset = new_offset.min(self.content_length.saturating_sub(1));
+    }
+
+    fn scroll_page_up(&mut self) {
+        let full_page = 20; // Could be made configurable based on terminal height
+        self.scroll_offset = self.scroll_offset.saturating_sub(full_page);
+    }
+
+    fn scroll_page_down(&mut self) {
+        let full_page = 20; // Could be made configurable based on terminal height
+        let new_offset = self.scroll_offset.saturating_add(full_page);
+        self.scroll_offset = new_offset.min(self.content_length.saturating_sub(1));
+    }
+
+    fn scroll_to_top(&mut self) {
+        self.scroll_offset = 0;
+    }
+
+    fn scroll_to_bottom(&mut self) {
+        self.scroll_offset = self.content_length.saturating_sub(1);
+    }
+
+    fn scroll_to_middle(&mut self) {
+        self.scroll_offset = self.content_length / 2;
     }
 
     fn reload_file(&mut self) -> Result<()> {
@@ -202,5 +276,72 @@ impl App {
 
     pub fn is_watching(&self) -> bool {
         self.watching
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::NamedTempFile;
+
+    fn create_test_app() -> App {
+        let temp_file = NamedTempFile::new().unwrap();
+        fs::write(&temp_file, "# Test\n\nLine 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20").unwrap();
+        
+        App::new(temp_file.path().to_path_buf(), false).unwrap()
+    }
+
+    #[test]
+    fn test_scroll_to_top() {
+        let mut app = create_test_app();
+        app.scroll_offset = 10;
+        app.scroll_to_top();
+        assert_eq!(app.scroll_offset, 0);
+    }
+
+    #[test]
+    fn test_scroll_to_bottom() {
+        let mut app = create_test_app();
+        app.scroll_to_bottom();
+        assert_eq!(app.scroll_offset, app.content_length.saturating_sub(1));
+    }
+
+    #[test]
+    fn test_scroll_to_middle() {
+        let mut app = create_test_app();
+        app.scroll_to_middle();
+        assert_eq!(app.scroll_offset, app.content_length / 2);
+    }
+
+    #[test]
+    fn test_scroll_half_page_up() {
+        let mut app = create_test_app();
+        app.scroll_offset = 15;
+        app.scroll_half_page_up();
+        assert_eq!(app.scroll_offset, 5);
+    }
+
+    #[test]
+    fn test_scroll_half_page_down() {
+        let mut app = create_test_app();
+        app.scroll_offset = 5;
+        app.scroll_half_page_down();
+        assert_eq!(app.scroll_offset, 15);
+    }
+
+    #[test]
+    fn test_scroll_bounds() {
+        let mut app = create_test_app();
+        
+        // Test scrolling up from top
+        app.scroll_offset = 0;
+        app.scroll_up();
+        assert_eq!(app.scroll_offset, 0);
+        
+        // Test scrolling down past bottom
+        app.scroll_offset = app.content_length.saturating_sub(1);
+        app.scroll_down();
+        assert_eq!(app.scroll_offset, app.content_length.saturating_sub(1));
     }
 }

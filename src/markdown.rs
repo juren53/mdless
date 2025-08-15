@@ -177,7 +177,7 @@ mod tests {
     fn test_render_simple_text() {
         let mut renderer = MarkdownRenderer::new();
         renderer.content = "Hello, world!".to_string();
-        
+
         let text = renderer.render_to_text();
         assert!(!text.lines.is_empty());
     }
@@ -186,7 +186,7 @@ mod tests {
     fn test_render_heading() {
         let mut renderer = MarkdownRenderer::new();
         renderer.content = "# Main Title\n\nSome content".to_string();
-        
+
         let text = renderer.render_to_text();
         assert!(text.lines.len() >= 2);
     }
@@ -195,7 +195,7 @@ mod tests {
     fn test_render_code_block() {
         let mut renderer = MarkdownRenderer::new();
         renderer.content = "```rust\nfn main() {}\n```".to_string();
-        
+
         let text = renderer.render_to_text();
         assert!(!text.lines.is_empty());
     }

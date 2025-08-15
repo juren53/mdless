@@ -30,16 +30,28 @@ mdview -w README.md
 
 ## Keybindings
 
+### Basic Controls
 | Key | Action |
 |-----|--------|
 | `q` | Quit the application |
 | `r` | Reload the file manually |
-| `↑` / `k` | Scroll up |
-| `↓` / `j` | Scroll down |
-| `Page Up` | Scroll up 10 lines |
-| `Page Down` | Scroll down 10 lines |
-| `Home` | Go to top |
-| `End` | Go to bottom |
+
+### Vim-Style Movement
+| Key | Action |
+|-----|--------|
+| `j` / `↓` | Scroll down one line |
+| `k` / `↑` | Scroll up one line |
+| `J` | Scroll down 5 lines |
+| `K` | Scroll up 5 lines |
+| `d` | Scroll down half page |
+| `u` | Scroll up half page |
+| `D` | Scroll down 10 lines |
+| `U` | Scroll up 10 lines |
+| `f` / `Page Down` | Scroll down full page |
+| `b` / `Page Up` | Scroll up full page |
+| `g` / `Home` | Go to top of document |
+| `G` / `End` | Go to bottom of document |
+| `M` | Go to middle of document |
 
 ## Development
 
