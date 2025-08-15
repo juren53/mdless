@@ -3,17 +3,25 @@ use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span, Text};
 use std::fs;
 use std::path::Path;
+use syntect::easy::HighlightLines;
+use syntect::highlighting::{Style as SyntectStyle, ThemeSet};
+use syntect::parsing::SyntaxSet;
+use syntect::util::LinesWithEndings;
 
 use crate::error::Result;
 
 pub struct MarkdownRenderer {
     content: String,
+    syntax_set: SyntaxSet,
+    theme_set: ThemeSet,
 }
 
 impl MarkdownRenderer {
     pub fn new() -> Self {
         Self {
             content: String::new(),
+            syntax_set: SyntaxSet::load_defaults_newlines(),
+            theme_set: ThemeSet::load_defaults(),
         }
     }
 
@@ -27,6 +35,8 @@ impl MarkdownRenderer {
         let mut lines = Vec::new();
         let mut current_line = Vec::new();
         let mut in_code_block = false;
+        let mut code_block_language = String::new();
+        let mut code_block_content = String::new();
         let mut in_heading = false;
         let mut heading_level = 0;
         let mut in_emphasis = false;
@@ -53,11 +63,22 @@ impl MarkdownRenderer {
                             in_heading = true;
                             heading_level = level as u8;
                         }
-                        Tag::CodeBlock(_) => {
+                        Tag::CodeBlock(lang) => {
                             in_code_block = true;
+                            code_block_language = match lang {
+                                pulldown_cmark::CodeBlockKind::Indented => String::new(),
+                                pulldown_cmark::CodeBlockKind::Fenced(lang_str) => {
+                                    lang_str.to_string()
+                                }
+                            };
+                            code_block_content.clear();
                             if !current_line.is_empty() {
                                 lines.push(Line::from(current_line.clone()));
                                 current_line.clear();
+                            }
+                            // Add a blank line before code block for spacing
+                            if !last_was_empty_line {
+                                lines.push(Line::from(""));
                             }
                         }
                         Tag::Emphasis => {
@@ -84,8 +105,59 @@ impl MarkdownRenderer {
                     }
                     TagEnd::CodeBlock => {
                         in_code_block = false;
+
+                        // Render the collected code block with syntax highlighting
+                        let highlighted_lines =
+                            self.highlight_code_block(&code_block_content, &code_block_language);
+
+                        // Add top border
+                        lines.push(Line::from(vec![Span::styled(
+                            "┌─────────────────────────────────────────────────────────────────────────────┐",
+                            Style::default().fg(Color::DarkGray)
+                        )]));
+
+                        // Add language label if present
+                        if !code_block_language.is_empty() {
+                            // Calculate proper padding for language label
+                            // The border is 80 display characters wide
+                            // Content structure: "│ " + language + padding + "│"
+                            // We want: 2 (for "│ ") + language_len + padding + 1 (for "│") = 80 chars
+                            let language_display_width = code_block_language.chars().count();
+                            let padding_needed =
+                                80_usize.saturating_sub(2 + language_display_width + 1);
+
+                            lines.push(Line::from(vec![
+                                Span::styled("│ ", Style::default().fg(Color::DarkGray)),
+                                Span::styled(
+                                    code_block_language.clone(),
+                                    Style::default()
+                                        .fg(Color::Cyan)
+                                        .add_modifier(Modifier::BOLD),
+                                ),
+                                Span::styled(" ".repeat(padding_needed), Style::default()),
+                                Span::styled("│", Style::default().fg(Color::DarkGray)),
+                            ]));
+                            lines.push(Line::from(vec![Span::styled(
+                                "├─────────────────────────────────────────────────────────────────────────────┤",
+                                Style::default().fg(Color::DarkGray)
+                            )]));
+                        }
+
+                        // Add highlighted code lines
+                        for highlighted_line in highlighted_lines {
+                            lines.push(highlighted_line);
+                        }
+
+                        // Add bottom border
+                        lines.push(Line::from(vec![Span::styled(
+                            "└─────────────────────────────────────────────────────────────────────────────┘",
+                            Style::default().fg(Color::DarkGray)
+                        )]));
+
                         lines.push(Line::from(""));
                         last_was_empty_line = true;
+                        code_block_content.clear();
+                        code_block_language.clear();
                     }
                     TagEnd::Emphasis => {
                         in_emphasis = false;
@@ -104,21 +176,17 @@ impl MarkdownRenderer {
                     _ => {}
                 },
                 Event::Text(text) => {
-                    let style = self.get_text_style(
-                        in_heading,
-                        heading_level,
-                        in_code_block,
-                        in_emphasis,
-                        in_strong,
-                    );
-
                     if in_code_block {
-                        for line in text.lines() {
-                            lines
-                                .push(Line::from(vec![Span::styled(format!("  {}", line), style)]));
-                            last_was_empty_line = line.trim().is_empty();
-                        }
+                        code_block_content.push_str(&text);
                     } else {
+                        let style = self.get_text_style(
+                            in_heading,
+                            heading_level,
+                            in_code_block,
+                            in_emphasis,
+                            in_strong,
+                        );
+
                         current_line.push(Span::styled(text.to_string(), style));
                         // Text content means we're not on an empty line
                         if !text.trim().is_empty() {
@@ -127,8 +195,11 @@ impl MarkdownRenderer {
                     }
                 }
                 Event::Code(code) => {
-                    let style = Style::default().fg(Color::Yellow).bg(Color::DarkGray);
-                    current_line.push(Span::styled(format!("`{}`", code), style));
+                    let style = Style::default()
+                        .fg(Color::Yellow)
+                        .bg(Color::Rgb(40, 40, 40))
+                        .add_modifier(Modifier::BOLD);
+                    current_line.push(Span::styled(format!(" {} ", code), style));
                     last_was_empty_line = false;
                 }
                 Event::SoftBreak | Event::HardBreak => {
@@ -147,6 +218,102 @@ impl MarkdownRenderer {
         }
 
         Text::from(lines)
+    }
+
+    fn highlight_code_block(&self, code: &str, language: &str) -> Vec<Line<'static>> {
+        let mut lines = Vec::new();
+
+        // Try to find the syntax for the given language
+        let syntax = if language.is_empty() {
+            self.syntax_set.find_syntax_plain_text()
+        } else {
+            self.syntax_set
+                .find_syntax_by_token(language)
+                .or_else(|| self.syntax_set.find_syntax_by_extension(language))
+                .unwrap_or_else(|| self.syntax_set.find_syntax_plain_text())
+        };
+
+        // Use a dark theme for better terminal compatibility
+        let theme = &self.theme_set.themes["base16-ocean.dark"];
+        let mut highlighter = HighlightLines::new(syntax, theme);
+
+        for line in LinesWithEndings::from(code) {
+            let highlighted = highlighter
+                .highlight_line(line, &self.syntax_set)
+                .unwrap_or_else(|_| vec![(SyntectStyle::default(), line)]);
+
+            let mut spans = vec![Span::styled("│ ", Style::default().fg(Color::DarkGray))];
+
+            for (style, text) in highlighted {
+                let ratatui_style = self.syntect_style_to_ratatui(style);
+                spans.push(Span::styled(text.to_string(), ratatui_style));
+            }
+
+            // Pad the line to fit within the border
+            // Target: "│ " + content + padding + "│" = 80 display characters
+            let content_length: usize = spans
+                .iter()
+                .skip(1)
+                .map(|s| s.content.chars().count())
+                .sum();
+            let padding_needed = 80_usize.saturating_sub(2 + content_length + 1);
+            if padding_needed > 0 {
+                spans.push(Span::styled(" ".repeat(padding_needed), Style::default()));
+            }
+
+            spans.push(Span::styled("│", Style::default().fg(Color::DarkGray)));
+            lines.push(Line::from(spans));
+        }
+
+        // If no lines were added (empty code block), add an empty line
+        if lines.is_empty() {
+            lines.push(Line::from(vec![
+                Span::styled("│", Style::default().fg(Color::DarkGray)),
+                Span::styled(" ".repeat(77), Style::default()), // 80 - 2 - 1 = 77 spaces
+                Span::styled("│", Style::default().fg(Color::DarkGray)),
+            ]));
+        }
+
+        lines
+    }
+
+    fn syntect_style_to_ratatui(&self, syntect_style: SyntectStyle) -> Style {
+        let mut style = Style::default();
+
+        // Convert foreground color
+        let fg_color = syntect_style.foreground;
+        style = style.fg(Color::Rgb(fg_color.r, fg_color.g, fg_color.b));
+
+        // Convert background color if it's not transparent
+        if syntect_style.background.a > 0 {
+            let bg_color = syntect_style.background;
+            style = style.bg(Color::Rgb(bg_color.r, bg_color.g, bg_color.b));
+        } else {
+            // Use a dark background for code blocks
+            style = style.bg(Color::Rgb(30, 30, 30));
+        }
+
+        // Convert font style
+        if syntect_style
+            .font_style
+            .contains(syntect::highlighting::FontStyle::BOLD)
+        {
+            style = style.add_modifier(Modifier::BOLD);
+        }
+        if syntect_style
+            .font_style
+            .contains(syntect::highlighting::FontStyle::ITALIC)
+        {
+            style = style.add_modifier(Modifier::ITALIC);
+        }
+        if syntect_style
+            .font_style
+            .contains(syntect::highlighting::FontStyle::UNDERLINE)
+        {
+            style = style.add_modifier(Modifier::UNDERLINED);
+        }
+
+        style
     }
 
     fn get_text_style(
@@ -307,5 +474,51 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_code_block_border_alignment() {
+        let mut renderer = MarkdownRenderer::new();
+        renderer.content = "```rust\nfn main() {}\n```".to_string();
+
+        let text = renderer.render_to_text();
+
+        // Find the language header line (contains "rust")
+        let language_line_idx = text
+            .lines
+            .iter()
+            .position(|line| line.spans.iter().any(|span| span.content.contains("rust")))
+            .expect("Should find language header line");
+
+        let language_line = &text.lines[language_line_idx];
+
+        // Calculate the display width (character count, not byte count)
+        let display_width: usize = language_line
+            .spans
+            .iter()
+            .map(|s| s.content.chars().count())
+            .sum();
+
+        // The language header line should have exactly 80 display characters to match the border
+        assert_eq!(
+            display_width, 80,
+            "Language line should be exactly 80 display characters wide"
+        );
+
+        // Check that it has the proper structure
+        assert!(
+            language_line.spans.len() >= 3,
+            "Should have at least 3 spans"
+        );
+        assert_eq!(
+            language_line.spans[0].content.chars().count(),
+            2,
+            "First span should be '│ ' (2 chars)"
+        );
+        assert_eq!(
+            language_line.spans.last().unwrap().content.chars().count(),
+            1,
+            "Last span should be '│' (1 char)"
+        );
     }
 }

@@ -7,7 +7,8 @@ A fast, terminal-based markdown file viewer built with Rust.
 - **Real-time rendering**: View markdown files with syntax highlighting
 - **File watching**: Automatically reload when files change (with `-w` flag)
 - **Keyboard navigation**: Scroll through documents with vim-like keybindings
-- **Syntax highlighting**: Code blocks with proper highlighting
+- **Advanced syntax highlighting**: Code blocks with proper language-specific highlighting using syntect
+- **HTML-style code blocks**: Bordered code blocks with language labels and professional styling
 - **Cross-platform**: Works on Linux, macOS, and Windows
 
 ## Installation
