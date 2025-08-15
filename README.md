@@ -1,4 +1,4 @@
-# mdview
+# mdless
 
 A fast, terminal-based markdown file viewer built with Rust.
 
@@ -21,12 +21,12 @@ cargo install --path .
 
 ### Basic usage
 ```bash
-mdview README.md
+mdless README.md
 ```
 
 ### Watch mode (auto-reload on file changes)
 ```bash
-mdview -w README.md
+mdless -w README.md
 ```
 
 ## Keybindings

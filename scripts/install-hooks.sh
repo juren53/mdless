@@ -7,7 +7,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "Installing git hooks for mdview project..."
+echo "Installing git hooks for mdless project..."
 
 # Create the pre-commit hook
 cat > "$REPO_ROOT/.git/hooks/pre-commit" << 'EOF'

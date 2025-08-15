@@ -24,7 +24,7 @@ mod ui;
 use app::App;
 
 #[derive(Parser)]
-#[command(name = "mdview")]
+#[command(name = "mdless")]
 #[command(about = "A terminal-based markdown file viewer")]
 #[command(version)]
 struct Cli {

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "Building mdview with improved code blocks..."
+echo "Building mdless with improved code blocks..."
 cargo build --release
 
 echo ""
@@ -17,4 +17,4 @@ echo ""
 echo "Press any key to view the demo file..."
 read -n 1 -s
 
-./target/release/mdview test_code_blocks.md
+./target/release/mdless test_code_blocks.md

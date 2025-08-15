@@ -38,7 +38,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
 }
 
 fn draw_header(frame: &mut Frame, area: Rect, app: &App) {
-    let title = format!("mdview - {}", app.get_file_name());
+    let title = format!("mdless - {}", app.get_file_name());
     let header = Paragraph::new(title)
         .block(
             Block::default()

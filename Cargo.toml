@@ -1,19 +1,19 @@
 [package]
-name = "mdview"
+name = "mdless"
 version = "0.1.0"
 edition = "2024"
 authors = ["Ray Krueger <raykrueger@gmail.com>"]
 description = "A terminal-based markdown file viewer"
 license = "Apache-2.0"
-repository = "https://github.com/raykrueger/mdview"
-homepage = "https://github.com/raykrueger/mdview"
-documentation = "https://github.com/raykrueger/mdview"
+repository = "https://github.com/raykrueger/mdless"
+homepage = "https://github.com/raykrueger/mdless"
+documentation = "https://github.com/raykrueger/mdless"
 readme = "README.md"
 keywords = ["markdown", "viewer", "terminal", "tui", "cli"]
 categories = ["command-line-utilities", "text-processing"]
 
 [[bin]]
-name = "mdview"
+name = "mdless"
 path = "src/main.rs"
 
 [dependencies]
