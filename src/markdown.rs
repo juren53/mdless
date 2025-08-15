@@ -527,7 +527,8 @@ mod tests {
     #[test]
     fn test_code_block_content_line_alignment() {
         let mut renderer = MarkdownRenderer::new();
-        renderer.content = "```rust\nfn main() {\n    println!(\"Hello, world!\");\n}\n```".to_string();
+        renderer.content =
+            "```rust\nfn main() {\n    println!(\"Hello, world!\");\n}\n```".to_string();
 
         let text = renderer.render_to_text();
 
@@ -541,17 +542,14 @@ mod tests {
                     && line.spans[0].content == "│ "
                     && line.spans.last().unwrap().content == "│"
                     && !line.spans.iter().any(|span| span.content.contains("─")) // Not a border line
-                    && !line.spans.iter().any(|span| span.content.contains("rust")) // Not the language line
+                    && !line.spans.iter().any(|span| span.content.contains("rust"))
+                // Not the language line
             })
             .collect();
 
         // Each code content line should have exactly 79 display characters
         for line in code_content_lines {
-            let display_width: usize = line
-                .spans
-                .iter()
-                .map(|s| s.content.chars().count())
-                .sum();
+            let display_width: usize = line.spans.iter().map(|s| s.content.chars().count()).sum();
 
             assert_eq!(
                 display_width, 79,
