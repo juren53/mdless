@@ -1,88 +1,39 @@
 #!/bin/bash
-# Install git hooks for the mdview project
+# Install git hooks for the project
 
 set -e
 
+# Get the directory of this script
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "Installing git hooks for mdview..."
+echo "Installing git hooks for mdview project..."
 
-# Create hooks directory if it doesn't exist
-mkdir -p "$PROJECT_ROOT/.git/hooks"
-
-# Copy pre-commit hook
-cp "$PROJECT_ROOT/.git/hooks/pre-commit" "$PROJECT_ROOT/.git/hooks/pre-commit.backup" 2>/dev/null || true
-cat > "$PROJECT_ROOT/.git/hooks/pre-commit" << 'EOF'
+# Create the pre-commit hook
+cat > "$REPO_ROOT/.git/hooks/pre-commit" << 'EOF'
 #!/bin/bash
-# Pre-commit hook for Rust projects
-# Runs formatting, linting, compilation checks, and tests
+# Pre-commit hook that runs the pre-commit checks script
 
-set -e
+# Get the directory of the git repository
+REPO_ROOT=$(git rev-parse --show-toplevel)
 
-echo "Running Rust pre-commit checks..."
-
-# Check if we're in a Rust project
-if [ ! -f "Cargo.toml" ]; then
-    echo "No Cargo.toml found, skipping Rust checks"
-    exit 0
-fi
-
-# Format check - ensure code is properly formatted
-echo "🔍 Checking code formatting..."
-cargo fmt --all -- --check
-if [ $? -ne 0 ]; then
-    echo "❌ Code formatting issues found. Run 'cargo fmt' to fix."
-    exit 1
-fi
-echo "✅ Code formatting is correct"
-
-# Lint code with clippy
-echo "🔍 Running clippy linter..."
-cargo clippy --all-targets --all-features -- -D warnings
-if [ $? -ne 0 ]; then
-    echo "❌ Clippy found issues. Please fix the warnings above."
-    exit 1
-fi
-echo "✅ Clippy checks passed"
-
-# Check compilation
-echo "🔍 Checking compilation..."
-cargo check --all-targets --all-features
-if [ $? -ne 0 ]; then
-    echo "❌ Compilation failed. Please fix the errors above."
-    exit 1
-fi
-echo "✅ Compilation successful"
-
-# Run tests
-echo "🔍 Running tests..."
-cargo test --all-features
-if [ $? -ne 0 ]; then
-    echo "❌ Tests failed. Please fix the failing tests above."
-    exit 1
-fi
-echo "✅ All tests passed"
-
-# Optional: Security audit (uncomment if you want this)
-# echo "🔍 Running security audit..."
-# cargo audit
-# if [ $? -ne 0 ]; then
-#     echo "⚠️  Security vulnerabilities found. Consider updating dependencies."
-#     # Don't exit on audit failures as they might not be immediately fixable
-# fi
-
-echo "🎉 All pre-commit checks passed!"
+# Run the pre-commit checks script
+exec "$REPO_ROOT/scripts/pre-commit-checks.sh"
 EOF
 
-chmod +x "$PROJECT_ROOT/.git/hooks/pre-commit"
+# Make the hook executable
+chmod +x "$REPO_ROOT/.git/hooks/pre-commit"
 
 echo "✅ Pre-commit hook installed successfully!"
 echo ""
-echo "The hook will now run automatically before each commit and will:"
-echo "  - Check code formatting (cargo fmt --check)"
-echo "  - Run clippy linter (cargo clippy)"
-echo "  - Verify compilation (cargo check)"
-echo "  - Run all tests (cargo test)"
+echo "The hook will run the following checks before each commit:"
+echo "  1. cargo check (fast compilation check)"
+echo "  2. cargo fmt --check (code formatting)"
+echo "  3. cargo clippy (linting)"
+echo "  4. cargo test (run all tests)"
 echo ""
-echo "To bypass the hook for a specific commit, use: git commit --no-verify"
+echo "To bypass the hook for a specific commit (not recommended):"
+echo "  git commit --no-verify"
+echo ""
+echo "To run the checks manually:"
+echo "  ./scripts/pre-commit-checks.sh"
