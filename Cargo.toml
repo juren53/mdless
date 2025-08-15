@@ -3,7 +3,7 @@ name = "mdview"
 version = "0.1.0"
 edition = "2024"
 description = "A terminal-based markdown file viewer"
-license = "MIT"
+license = "Apache-2.0"
 
 [[bin]]
 name = "mdview"
