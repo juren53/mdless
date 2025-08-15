@@ -110,7 +110,7 @@ impl MarkdownRenderer {
                         let highlighted_lines =
                             self.highlight_code_block(&code_block_content, &code_block_language);
 
-                        // Add top border
+                        // Add top border (79 characters wide)
                         lines.push(Line::from(vec![Span::styled(
                             "┌─────────────────────────────────────────────────────────────────────────────┐",
                             Style::default().fg(Color::DarkGray)
@@ -119,12 +119,12 @@ impl MarkdownRenderer {
                         // Add language label if present
                         if !code_block_language.is_empty() {
                             // Calculate proper padding for language label
-                            // The border is 80 display characters wide
+                            // The border is 79 display characters wide
                             // Content structure: "│ " + language + padding + "│"
-                            // We want: 2 (for "│ ") + language_len + padding + 1 (for "│") = 80 chars
+                            // We want: 2 (for "│ ") + language_len + padding + 1 (for "│") = 79 chars
                             let language_display_width = code_block_language.chars().count();
                             let padding_needed =
-                                80_usize.saturating_sub(2 + language_display_width + 1);
+                                79_usize.saturating_sub(2 + language_display_width + 1);
 
                             lines.push(Line::from(vec![
                                 Span::styled("│ ", Style::default().fg(Color::DarkGray)),
@@ -246,20 +246,22 @@ impl MarkdownRenderer {
 
             for (style, text) in highlighted {
                 let ratatui_style = self.syntect_style_to_ratatui(style);
-                spans.push(Span::styled(text.to_string(), ratatui_style));
+                // Strip newlines from the text since they don't contribute to display width
+                let display_text = text.trim_end_matches('\n');
+                if !display_text.is_empty() {
+                    spans.push(Span::styled(display_text.to_string(), ratatui_style));
+                }
             }
 
             // Pad the line to fit within the border
-            // Target: "│ " + content + padding + "│" = 80 display characters
+            // Target: "│ " + content + padding + "│" = 79 display characters
             let content_length: usize = spans
                 .iter()
                 .skip(1)
                 .map(|s| s.content.chars().count())
                 .sum();
-            let padding_needed = 80_usize.saturating_sub(2 + content_length + 1);
-            if padding_needed > 0 {
-                spans.push(Span::styled(" ".repeat(padding_needed), Style::default()));
-            }
+            let padding_needed = 79_usize.saturating_sub(2 + content_length + 1);
+            spans.push(Span::styled(" ".repeat(padding_needed), Style::default()));
 
             spans.push(Span::styled("│", Style::default().fg(Color::DarkGray)));
             lines.push(Line::from(spans));
@@ -269,7 +271,7 @@ impl MarkdownRenderer {
         if lines.is_empty() {
             lines.push(Line::from(vec![
                 Span::styled("│", Style::default().fg(Color::DarkGray)),
-                Span::styled(" ".repeat(77), Style::default()), // 80 - 2 - 1 = 77 spaces
+                Span::styled(" ".repeat(76), Style::default()), // 79 - 2 - 1 = 76 spaces
                 Span::styled("│", Style::default().fg(Color::DarkGray)),
             ]));
         }
@@ -499,10 +501,10 @@ mod tests {
             .map(|s| s.content.chars().count())
             .sum();
 
-        // The language header line should have exactly 80 display characters to match the border
+        // The language header line should have exactly 79 display characters to match the border
         assert_eq!(
-            display_width, 80,
-            "Language line should be exactly 80 display characters wide"
+            display_width, 79,
+            "Language line should be exactly 79 display characters wide"
         );
 
         // Check that it has the proper structure
@@ -520,5 +522,41 @@ mod tests {
             1,
             "Last span should be '│' (1 char)"
         );
+    }
+
+    #[test]
+    fn test_code_block_content_line_alignment() {
+        let mut renderer = MarkdownRenderer::new();
+        renderer.content = "```rust\nfn main() {\n    println!(\"Hello, world!\");\n}\n```".to_string();
+
+        let text = renderer.render_to_text();
+
+        // Find all lines that contain code content (between borders)
+        let code_content_lines: Vec<&Line> = text
+            .lines
+            .iter()
+            .filter(|line| {
+                // Code content lines start with "│ " and end with "│"
+                line.spans.len() >= 2
+                    && line.spans[0].content == "│ "
+                    && line.spans.last().unwrap().content == "│"
+                    && !line.spans.iter().any(|span| span.content.contains("─")) // Not a border line
+                    && !line.spans.iter().any(|span| span.content.contains("rust")) // Not the language line
+            })
+            .collect();
+
+        // Each code content line should have exactly 79 display characters
+        for line in code_content_lines {
+            let display_width: usize = line
+                .spans
+                .iter()
+                .map(|s| s.content.chars().count())
+                .sum();
+
+            assert_eq!(
+                display_width, 79,
+                "Code content line should be exactly 79 display characters wide"
+            );
+        }
     }
 }
