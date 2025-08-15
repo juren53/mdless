@@ -1,9 +1,9 @@
 use ratatui::{
+    Frame,
     layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
-    Frame,
 };
 
 use crate::app::App;
@@ -16,7 +16,7 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
             Constraint::Min(0),    // Content
             Constraint::Length(3), // Footer
         ])
-        .split(frame.size());
+        .split(frame.area());
 
     draw_header(frame, chunks[0], app);
     draw_content(frame, chunks[1], app);
@@ -59,7 +59,7 @@ fn draw_content(frame: &mut Frame, area: Rect, app: &mut App) {
 
     frame.render_stateful_widget(
         scrollbar,
-        area.inner(&ratatui::layout::Margin {
+        area.inner(ratatui::layout::Margin {
             vertical: 1,
             horizontal: 0,
         }),

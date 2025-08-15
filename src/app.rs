@@ -1,13 +1,13 @@
 use crossterm::{
     event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use notify::{RecommendedWatcher, RecursiveMode, Watcher};
 use ratatui::{
+    Terminal,
     backend::{Backend, CrosstermBackend},
     text::Text,
-    Terminal,
 };
 use std::{io, path::PathBuf, sync::mpsc, time::Duration};
 
@@ -98,23 +98,20 @@ impl App {
             }
 
             // Check for file changes if watching
-            if let Some(ref rx) = self.file_change_rx {
-                if rx.try_recv().is_ok() {
-                    self.reload_file()?;
-                }
+            if let Some(ref rx) = self.file_change_rx
+                && rx.try_recv().is_ok()
+            {
+                self.reload_file()?;
             }
 
             // Handle input events
             if event::poll(Duration::from_millis(100))
                 .map_err(|e| MdViewError::Terminal(e.to_string()))?
-            {
-                if let Event::Key(key) =
+                && let Event::Key(key) =
                     event::read().map_err(|e| MdViewError::Terminal(e.to_string()))?
-                {
-                    if key.kind == KeyEventKind::Press {
-                        self.handle_key_event(key.code);
-                    }
-                }
+                && key.kind == KeyEventKind::Press
+            {
+                self.handle_key_event(key.code);
             }
         }
 

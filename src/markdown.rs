@@ -459,22 +459,22 @@ mod tests {
         );
 
         // Both headers should have empty lines before them
-        if let Some(idx) = first_header_idx {
-            if idx > 0 {
-                assert!(
-                    lines_text[idx - 1].trim().is_empty(),
-                    "First header should have empty line before it"
-                );
-            }
+        if let Some(idx) = first_header_idx
+            && idx > 0
+        {
+            assert!(
+                lines_text[idx - 1].trim().is_empty(),
+                "First header should have empty line before it"
+            );
         }
 
-        if let Some(idx) = second_header_idx {
-            if idx > 0 {
-                assert!(
-                    lines_text[idx - 1].trim().is_empty(),
-                    "Second header should have empty line before it"
-                );
-            }
+        if let Some(idx) = second_header_idx
+            && idx > 0
+        {
+            assert!(
+                lines_text[idx - 1].trim().is_empty(),
+                "Second header should have empty line before it"
+            );
         }
     }
 

@@ -1,7 +1,7 @@
 [package]
 name = "mdview"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 description = "A terminal-based markdown file viewer"
 license = "MIT"
 
@@ -11,24 +11,24 @@ path = "src/main.rs"
 
 [dependencies]
 # TUI framework
-ratatui = "0.26"
-crossterm = "0.27"
+ratatui = "0.29"
+crossterm = "0.29"
 
 # Markdown parsing and rendering
-pulldown-cmark = "0.10"
+pulldown-cmark = "0.13"
 syntect = "5.1"
 
 # CLI argument parsing
 clap = { version = "4.4", features = ["derive"] }
 
 # File system operations
-notify = "6.1"
+notify = "8.2"
 
 # Error handling
 anyhow = "1.0"
-thiserror = "1.0"
+thiserror = "2.0"
 
 [dev-dependencies]
-criterion = "0.5"
+criterion = "0.7"
 proptest = "1.0"
 tempfile = "3.8"
