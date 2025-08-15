@@ -288,7 +288,7 @@ mod tests {
     fn create_test_app() -> App {
         let temp_file = NamedTempFile::new().unwrap();
         fs::write(&temp_file, "# Test\n\nLine 1\nLine 2\nLine 3\nLine 4\nLine 5\nLine 6\nLine 7\nLine 8\nLine 9\nLine 10\nLine 11\nLine 12\nLine 13\nLine 14\nLine 15\nLine 16\nLine 17\nLine 18\nLine 19\nLine 20").unwrap();
-        
+
         App::new(temp_file.path().to_path_buf(), false).unwrap()
     }
 
@@ -333,12 +333,12 @@ mod tests {
     #[test]
     fn test_scroll_bounds() {
         let mut app = create_test_app();
-        
+
         // Test scrolling up from top
         app.scroll_offset = 0;
         app.scroll_up();
         assert_eq!(app.scroll_offset, 0);
-        
+
         // Test scrolling down past bottom
         app.scroll_offset = app.content_length.saturating_sub(1);
         app.scroll_down();

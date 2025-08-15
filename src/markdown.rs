@@ -31,12 +31,25 @@ impl MarkdownRenderer {
         let mut heading_level = 0;
         let mut in_emphasis = false;
         let mut in_strong = false;
+        let mut last_was_empty_line = true; // Track if the last line was empty
 
         for event in parser {
             match event {
                 Event::Start(tag) => {
                     match tag {
                         Tag::Heading { level, .. } => {
+                            // If we have content in current_line or the last line wasn't empty,
+                            // we need to add spacing before the heading
+                            if !current_line.is_empty() {
+                                lines.push(Line::from(current_line.clone()));
+                                current_line.clear();
+                            }
+
+                            // Add blank line before heading if the last line wasn't already empty
+                            if !last_was_empty_line && !lines.is_empty() {
+                                lines.push(Line::from(""));
+                            }
+
                             in_heading = true;
                             heading_level = level as u8;
                         }
@@ -67,10 +80,12 @@ impl MarkdownRenderer {
                             current_line.clear();
                         }
                         lines.push(Line::from(""));
+                        last_was_empty_line = true;
                     }
                     TagEnd::CodeBlock => {
                         in_code_block = false;
                         lines.push(Line::from(""));
+                        last_was_empty_line = true;
                     }
                     TagEnd::Emphasis => {
                         in_emphasis = false;
@@ -84,6 +99,7 @@ impl MarkdownRenderer {
                             current_line.clear();
                         }
                         lines.push(Line::from(""));
+                        last_was_empty_line = true;
                     }
                     _ => {}
                 },
@@ -100,19 +116,26 @@ impl MarkdownRenderer {
                         for line in text.lines() {
                             lines
                                 .push(Line::from(vec![Span::styled(format!("  {}", line), style)]));
+                            last_was_empty_line = line.trim().is_empty();
                         }
                     } else {
                         current_line.push(Span::styled(text.to_string(), style));
+                        // Text content means we're not on an empty line
+                        if !text.trim().is_empty() {
+                            last_was_empty_line = false;
+                        }
                     }
                 }
                 Event::Code(code) => {
                     let style = Style::default().fg(Color::Yellow).bg(Color::DarkGray);
                     current_line.push(Span::styled(format!("`{}`", code), style));
+                    last_was_empty_line = false;
                 }
                 Event::SoftBreak | Event::HardBreak => {
                     if !current_line.is_empty() {
                         lines.push(Line::from(current_line.clone()));
                         current_line.clear();
+                        last_was_empty_line = false;
                     }
                 }
                 _ => {}
@@ -192,11 +215,97 @@ mod tests {
     }
 
     #[test]
-    fn test_render_code_block() {
+    fn test_header_spacing_fix() {
         let mut renderer = MarkdownRenderer::new();
-        renderer.content = "```rust\nfn main() {}\n```".to_string();
+        renderer.content =
+            "Some paragraph text.\n### Header without spacing\nMore content.".to_string();
 
         let text = renderer.render_to_text();
-        assert!(!text.lines.is_empty());
+
+        // The rendered text should have proper spacing before the header
+        // We expect: paragraph line, empty line, header line, empty line, content line
+        assert!(
+            text.lines.len() >= 5,
+            "Should have at least 5 lines with proper spacing"
+        );
+
+        // Check that there's an empty line before the header
+        let lines_text: Vec<String> = text
+            .lines
+            .iter()
+            .map(|line| {
+                line.spans
+                    .iter()
+                    .map(|span| span.content.as_ref())
+                    .collect::<String>()
+            })
+            .collect();
+
+        // Find the header line
+        let header_index = lines_text
+            .iter()
+            .position(|line| line.contains("Header without spacing"));
+        assert!(header_index.is_some(), "Header should be found");
+
+        let header_idx = header_index.unwrap();
+        // There should be an empty line before the header (unless it's the first line)
+        if header_idx > 0 {
+            assert!(
+                lines_text[header_idx - 1].trim().is_empty(),
+                "There should be an empty line before the header"
+            );
+        }
+    }
+
+    #[test]
+    fn test_multiple_headers_without_spacing() {
+        let mut renderer = MarkdownRenderer::new();
+        renderer.content =
+            "Paragraph.\n### First Header\nContent.\n### Second Header\nMore content.".to_string();
+
+        let text = renderer.render_to_text();
+
+        // Should have proper spacing before both headers
+        let lines_text: Vec<String> = text
+            .lines
+            .iter()
+            .map(|line| {
+                line.spans
+                    .iter()
+                    .map(|span| span.content.as_ref())
+                    .collect::<String>()
+            })
+            .collect();
+
+        let first_header_idx = lines_text
+            .iter()
+            .position(|line| line.contains("First Header"));
+        let second_header_idx = lines_text
+            .iter()
+            .position(|line| line.contains("Second Header"));
+
+        assert!(
+            first_header_idx.is_some() && second_header_idx.is_some(),
+            "Both headers should be found"
+        );
+
+        // Both headers should have empty lines before them
+        if let Some(idx) = first_header_idx {
+            if idx > 0 {
+                assert!(
+                    lines_text[idx - 1].trim().is_empty(),
+                    "First header should have empty line before it"
+                );
+            }
+        }
+
+        if let Some(idx) = second_header_idx {
+            if idx > 0 {
+                assert!(
+                    lines_text[idx - 1].trim().is_empty(),
+                    "Second header should have empty line before it"
+                );
+            }
+        }
     }
 }
