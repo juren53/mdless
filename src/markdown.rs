@@ -55,6 +55,8 @@ impl MarkdownRenderer {
         let mut heading_level = 0;
         let mut in_emphasis = false;
         let mut in_strong = false;
+        let mut _in_list = false;
+        let mut _in_list_item = false;
         let mut last_was_empty_line = true; // Track if the last line was empty
 
         for event in parser {
@@ -103,6 +105,29 @@ impl MarkdownRenderer {
                         }
                         Tag::Paragraph => {
                             // Start new paragraph
+                        }
+                        Tag::List(_) => {
+                            _in_list = true;
+                            // Add spacing before list if needed
+                            if !current_line.is_empty() {
+                                lines.push(Line::from(current_line.clone()));
+                                current_line.clear();
+                            }
+                        }
+                        Tag::Item => {
+                            _in_list_item = true;
+                            // Finish current line if it has content
+                            if !current_line.is_empty() {
+                                lines.push(Line::from(current_line.clone()));
+                                current_line.clear();
+                            }
+                            // Add bullet point
+                            current_line.push(Span::styled(
+                                "• ",
+                                Style::default()
+                                    .fg(Color::Yellow)
+                                    .add_modifier(Modifier::BOLD),
+                            ));
                         }
                         _ => {}
                     }
@@ -186,6 +211,25 @@ impl MarkdownRenderer {
                         }
                         lines.push(Line::from(""));
                         last_was_empty_line = true;
+                    }
+                    TagEnd::List(_) => {
+                        _in_list = false;
+                        // Add spacing after list
+                        if !current_line.is_empty() {
+                            lines.push(Line::from(current_line.clone()));
+                            current_line.clear();
+                        }
+                        lines.push(Line::from(""));
+                        last_was_empty_line = true;
+                    }
+                    TagEnd::Item => {
+                        _in_list_item = false;
+                        // Finish the current list item line
+                        if !current_line.is_empty() {
+                            lines.push(Line::from(current_line.clone()));
+                            current_line.clear();
+                        }
+                        last_was_empty_line = false;
                     }
                     _ => {}
                 },

@@ -20,11 +20,13 @@ cargo install --path .
 ## Usage
 
 ### Basic usage
+
 ```bash
 mdless README.md
 ```
 
 ### Watch mode (auto-reload on file changes)
+
 ```bash
 mdless -w README.md
 ```
@@ -32,27 +34,29 @@ mdless -w README.md
 ## Keybindings
 
 ### Basic Controls
-| Key | Action |
-|-----|--------|
-| `q` | Quit the application |
+
+| Key | Action                   |
+| --- | ------------------------ |
+| `q` | Quit the application     |
 | `r` | Reload the file manually |
 
 ### Vim-Style Movement
-| Key | Action |
-|-----|--------|
-| `j` / `↓` | Scroll down one line |
-| `k` / `↑` | Scroll up one line |
-| `J` | Scroll down 5 lines |
-| `K` | Scroll up 5 lines |
-| `d` | Scroll down half page |
-| `u` | Scroll up half page |
-| `D` | Scroll down 10 lines |
-| `U` | Scroll up 10 lines |
-| `f` / `Page Down` | Scroll down full page |
-| `b` / `Page Up` | Scroll up full page |
-| `g` / `Home` | Go to top of document |
-| `G` / `End` | Go to bottom of document |
-| `M` | Go to middle of document |
+
+| Key               | Action                   |
+| ----------------- | ------------------------ |
+| `j` / `↓`         | Scroll down one line     |
+| `k` / `↑`         | Scroll up one line       |
+| `J`               | Scroll down 5 lines      |
+| `K`               | Scroll up 5 lines        |
+| `d`               | Scroll down half page    |
+| `u`               | Scroll up half page      |
+| `D`               | Scroll down 10 lines     |
+| `U`               | Scroll up 10 lines       |
+| `f` / `Page Down` | Scroll down full page    |
+| `b` / `Page Up`   | Scroll up full page      |
+| `g` / `Home`      | Go to top of document    |
+| `G` / `End`       | Go to bottom of document |
+| `M`               | Go to middle of document |
 
 ## Development
 
@@ -90,17 +94,20 @@ The project includes a pre-commit hook that automatically runs formatting checks
 ```
 
 The pre-commit hook will run:
+
 - `cargo check` - Fast compilation check (runs first)
 - `cargo fmt --check` - Verify code formatting
 - `cargo clippy` - Run linter with warnings as errors
 - `cargo test` - Run all tests
 
 To run the checks manually without committing:
+
 ```bash
 ./scripts/pre-commit-checks.sh
 ```
 
 To bypass the hook for a specific commit (not recommended):
+
 ```bash
 git commit --no-verify
 ```
