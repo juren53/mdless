@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -70,19 +70,21 @@ jobs:
     needs: build
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
       - name: Create release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v1
         with:
           files: |
-            mdless-linux-x86_64/mdless
-            mdless-windows-x86_64.exe/mdless.exe
-            mdless-macos-x86_64/mdless
-            mdless-macos-aarch64/mdless
+            artifacts/mdless-linux-x86_64/mdless
+            artifacts/mdless-windows-x86_64.exe/mdless.exe
+            artifacts/mdless-macos-x86_64/mdless
+            artifacts/mdless-macos-aarch64/mdless
           generate_release_notes: true
           draft: false
           prerelease: false
