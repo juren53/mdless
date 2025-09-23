@@ -77,14 +77,20 @@ jobs:
         with:
           path: artifacts
 
+      - name: Rename binaries to avoid conflicts
+        run: |
+          mv artifacts/mdless-linux-x86_64/mdless artifacts/mdless-linux-x86_64/mdless-linux-x86_64
+          mv artifacts/mdless-macos-x86_64/mdless artifacts/mdless-macos-x86_64/mdless-macos-x86_64
+          mv artifacts/mdless-macos-aarch64/mdless artifacts/mdless-macos-aarch64/mdless-macos-aarch64
+
       - name: Create release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            artifacts/mdless-linux-x86_64/mdless
+            artifacts/mdless-linux-x86_64/mdless-linux-x86_64
             artifacts/mdless-windows-x86_64.exe/mdless.exe
-            artifacts/mdless-macos-x86_64/mdless
-            artifacts/mdless-macos-aarch64/mdless
+            artifacts/mdless-macos-x86_64/mdless-macos-x86_64
+            artifacts/mdless-macos-aarch64/mdless-macos-aarch64
           generate_release_notes: true
           draft: false
           prerelease: false
