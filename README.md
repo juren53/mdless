@@ -14,8 +14,38 @@ A fast, terminal-based markdown file viewer built with Rust.
 
 ## Installation
 
+### Download from GitHub Releases (Recommended)
+
+Download the latest pre-built binary for your platform from the [releases page](https://github.com/raykrueger/mdless/releases):
+
+**Linux:**
 ```bash
-cargo install --path .
+# Download and install (replace with latest version)
+wget https://github.com/raykrueger/mdless/releases/latest/download/mdless-linux-x86_64
+chmod +x mdless-linux-x86_64
+sudo mv mdless-linux-x86_64 /usr/local/bin/mdless
+```
+
+**macOS:**
+```bash
+# For Intel Macs:
+wget https://github.com/raykrueger/mdless/releases/latest/download/mdless-macos-x86_64
+chmod +x mdless-macos-x86_64
+sudo mv mdless-macos-x86_64 /usr/local/bin/mdless
+
+# For Apple Silicon Macs:
+wget https://github.com/raykrueger/mdless/releases/latest/download/mdless-macos-aarch64
+chmod +x mdless-macos-aarch64
+sudo mv mdless-macos-aarch64 /usr/local/bin/mdless
+```
+
+**Windows:**
+Download `mdless.exe` from the releases page and add it to your PATH.
+
+### Install from Crates.io
+
+```bash
+cargo install mdless
 ```
 
 ## Usage
