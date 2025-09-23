@@ -29,6 +29,29 @@ use crate::error::{MdViewError, Result};
 use crate::markdown::MarkdownRenderer;
 use crate::ui;
 
+#[derive(Debug, Clone, PartialEq)]
+pub enum AppMode {
+    Normal,
+    Search,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct SearchState {
+    pub query: String,
+    pub results: Vec<SearchResult>,
+    pub current_result_index: Option<usize>,
+    pub is_active: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct SearchResult {
+    pub line_index: usize,
+    #[allow(dead_code)]
+    pub char_start: usize,
+    #[allow(dead_code)]
+    pub char_end: usize,
+}
+
 pub struct App {
     file_path: PathBuf,
     renderer: MarkdownRenderer,
@@ -37,6 +60,8 @@ pub struct App {
     content_length: u16,
     watching: bool,
     should_quit: bool,
+    mode: AppMode,
+    search_state: SearchState,
     #[allow(dead_code)]
     file_watcher: Option<RecommendedWatcher>,
     file_change_rx: Option<mpsc::Receiver<()>>,
@@ -69,6 +94,8 @@ impl App {
             content_length,
             watching: watch,
             should_quit: false,
+            mode: AppMode::Normal,
+            search_state: SearchState::default(),
             file_watcher,
             file_change_rx,
         })
@@ -133,10 +160,29 @@ impl App {
     }
 
     fn handle_key_event(&mut self, key_code: KeyCode) {
+        match self.mode {
+            AppMode::Normal => self.handle_normal_mode_key(key_code),
+            AppMode::Search => self.handle_search_mode_key(key_code),
+        }
+    }
+
+    fn handle_normal_mode_key(&mut self, key_code: KeyCode) {
         match key_code {
             // Quit
             KeyCode::Char('q') => {
                 self.should_quit = true;
+            }
+            // Start search
+            KeyCode::Char('/') => {
+                self.start_search();
+            }
+            // Next search result
+            KeyCode::Char('n') => {
+                self.next_search_result();
+            }
+            // Previous search result
+            KeyCode::Char('N') => {
+                self.previous_search_result();
             }
             // Reload file
             KeyCode::Char('r') => {
@@ -208,6 +254,30 @@ impl App {
         }
     }
 
+    fn handle_search_mode_key(&mut self, key_code: KeyCode) {
+        match key_code {
+            KeyCode::Char(c) => {
+                self.search_state.query.push(c);
+                self.perform_search();
+            }
+            KeyCode::Backspace => {
+                self.search_state.query.pop();
+                if self.search_state.query.is_empty() {
+                    self.clear_search();
+                } else {
+                    self.perform_search();
+                }
+            }
+            KeyCode::Enter => {
+                self.exit_search_mode();
+            }
+            KeyCode::Esc => {
+                self.cancel_search();
+            }
+            _ => {}
+        }
+    }
+
     fn scroll_up(&mut self) {
         self.scroll_offset = self.scroll_offset.saturating_sub(1);
     }
@@ -262,7 +332,112 @@ impl App {
             self.scroll_offset = self.content_length.saturating_sub(1);
         }
 
+        // Clear search results since content changed
+        self.clear_search();
+
         Ok(())
+    }
+
+    fn start_search(&mut self) {
+        self.mode = AppMode::Search;
+        self.search_state.query.clear();
+        self.search_state.results.clear();
+        self.search_state.current_result_index = None;
+        self.search_state.is_active = true;
+    }
+
+    fn perform_search(&mut self) {
+        if self.search_state.query.is_empty() {
+            self.search_state.results.clear();
+            self.search_state.current_result_index = None;
+            return;
+        }
+
+        let query = self.search_state.query.to_lowercase();
+        let mut results = Vec::new();
+
+        for (line_index, line) in self.rendered_content.lines.iter().enumerate() {
+            let line_text = line
+                .spans
+                .iter()
+                .map(|span| span.content.as_ref())
+                .collect::<String>()
+                .to_lowercase();
+
+            let mut start_pos = 0;
+            while let Some(pos) = line_text[start_pos..].find(&query) {
+                let actual_pos = start_pos + pos;
+                results.push(SearchResult {
+                    line_index,
+                    char_start: actual_pos,
+                    char_end: actual_pos + query.len(),
+                });
+                start_pos = actual_pos + 1;
+            }
+        }
+
+        self.search_state.results = results;
+        if !self.search_state.results.is_empty() {
+            self.search_state.current_result_index = Some(0);
+            self.scroll_to_search_result(0);
+        } else {
+            self.search_state.current_result_index = None;
+        }
+    }
+
+    fn next_search_result(&mut self) {
+        if self.search_state.results.is_empty() {
+            return;
+        }
+
+        let current_index = self.search_state.current_result_index.unwrap_or(0);
+        let next_index = (current_index + 1) % self.search_state.results.len();
+        self.search_state.current_result_index = Some(next_index);
+        self.scroll_to_search_result(next_index);
+    }
+
+    fn previous_search_result(&mut self) {
+        if self.search_state.results.is_empty() {
+            return;
+        }
+
+        let current_index = self.search_state.current_result_index.unwrap_or(0);
+        let prev_index = if current_index == 0 {
+            self.search_state.results.len() - 1
+        } else {
+            current_index - 1
+        };
+        self.search_state.current_result_index = Some(prev_index);
+        self.scroll_to_search_result(prev_index);
+    }
+
+    fn scroll_to_search_result(&mut self, result_index: usize) {
+        if let Some(result) = self.search_state.results.get(result_index) {
+            let target_line = result.line_index as u16;
+            // Center the result on screen (assuming ~20 lines visible)
+            let screen_center_offset = 10;
+            self.scroll_offset = target_line.saturating_sub(screen_center_offset);
+
+            // Ensure we don't scroll past the end
+            let max_scroll = self.content_length.saturating_sub(20);
+            if self.scroll_offset > max_scroll {
+                self.scroll_offset = max_scroll;
+            }
+        }
+    }
+
+    fn exit_search_mode(&mut self) {
+        self.mode = AppMode::Normal;
+        // Keep search results active for navigation with n/N
+    }
+
+    fn cancel_search(&mut self) {
+        self.mode = AppMode::Normal;
+        self.clear_search();
+    }
+
+    fn clear_search(&mut self) {
+        self.search_state = SearchState::default();
     }
 
     pub fn get_file_name(&self) -> String {
@@ -287,6 +462,14 @@ impl App {
 
     pub fn is_watching(&self) -> bool {
         self.watching
+    }
+
+    pub fn get_mode(&self) -> &AppMode {
+        &self.mode
+    }
+
+    pub fn get_search_state(&self) -> &SearchState {
+        &self.search_state
     }
 }
 
@@ -354,5 +537,61 @@ mod tests {
         app.scroll_offset = app.content_length.saturating_sub(1);
         app.scroll_down();
         assert_eq!(app.scroll_offset, app.content_length.saturating_sub(1));
+    }
+
+    #[test]
+    fn test_search_functionality() {
+        let mut app = create_test_app();
+
+        // Test starting search
+        app.start_search();
+        assert_eq!(app.mode, AppMode::Search);
+        assert!(app.search_state.query.is_empty());
+        assert!(app.search_state.results.is_empty());
+
+        // Test search query
+        app.search_state.query = "Line".to_string();
+        app.perform_search();
+        assert!(!app.search_state.results.is_empty());
+        assert_eq!(app.search_state.current_result_index, Some(0));
+    }
+
+    #[test]
+    fn test_search_navigation() {
+        let mut app = create_test_app();
+
+        // Setup search with multiple results
+        app.search_state.query = "Line".to_string();
+        app.perform_search();
+        let result_count = app.search_state.results.len();
+
+        // Test next result
+        let initial_index = app.search_state.current_result_index.unwrap();
+        app.next_search_result();
+        assert_eq!(
+            app.search_state.current_result_index,
+            Some((initial_index + 1) % result_count)
+        );
+
+        // Test previous result
+        app.previous_search_result();
+        assert_eq!(app.search_state.current_result_index, Some(initial_index));
+    }
+
+    #[test]
+    fn test_search_clear() {
+        let mut app = create_test_app();
+
+        // Setup search
+        app.start_search();
+        app.search_state.query = "test".to_string();
+        app.perform_search();
+
+        // Clear search
+        app.clear_search();
+        assert!(!app.search_state.is_active);
+        assert!(app.search_state.query.is_empty());
+        assert!(app.search_state.results.is_empty());
+        assert_eq!(app.search_state.current_result_index, None);
     }
 }

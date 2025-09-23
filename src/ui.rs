@@ -15,12 +15,12 @@
 use ratatui::{
     Frame,
     layout::{Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState},
 };
 
-use crate::app::App;
+use crate::app::{App, AppMode};
 
 pub fn draw(frame: &mut Frame, app: &mut App) {
     let chunks = Layout::default()
@@ -28,13 +28,17 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         .constraints([
             Constraint::Length(3), // Header
             Constraint::Min(0),    // Content
-            Constraint::Length(3), // Footer
+            Constraint::Length(3), // Footer/Search
         ])
         .split(frame.area());
 
     draw_header(frame, chunks[0], app);
     draw_content(frame, chunks[1], app);
-    draw_footer(frame, chunks[2], app);
+
+    match app.get_mode() {
+        AppMode::Search => draw_search_bar(frame, chunks[2], app),
+        AppMode::Normal => draw_footer(frame, chunks[2], app),
+    }
 }
 
 fn draw_header(frame: &mut Frame, area: Rect, app: &App) {
@@ -81,11 +85,57 @@ fn draw_content(frame: &mut Frame, area: Rect, app: &mut App) {
     );
 }
 
-fn draw_footer(frame: &mut Frame, area: Rect, app: &App) {
-    let help_text = if app.is_watching() {
-        "Press 'q' to quit | ↑/↓ or j/k to scroll | Watching for file changes..."
+fn draw_search_bar(frame: &mut Frame, area: Rect, app: &App) {
+    let search_state = app.get_search_state();
+
+    let search_text = if search_state.results.is_empty() && !search_state.query.is_empty() {
+        format!("/{} (no matches)", search_state.query)
+    } else if let Some(current_index) = search_state.current_result_index {
+        format!(
+            "/{} ({}/{})",
+            search_state.query,
+            current_index + 1,
+            search_state.results.len()
+        )
     } else {
-        "Press 'q' to quit | ↑/↓ or j/k to scroll | 'r' to reload"
+        format!("/{}", search_state.query)
+    };
+
+    let search_color = if search_state.results.is_empty() && !search_state.query.is_empty() {
+        Color::Red
+    } else {
+        Color::Yellow
+    };
+
+    let search_bar = Paragraph::new(Line::from(vec![Span::styled(
+        search_text,
+        Style::default()
+            .fg(search_color)
+            .add_modifier(Modifier::BOLD),
+    )]))
+    .block(
+        Block::default()
+            .borders(Borders::ALL)
+            .title("Search")
+            .title_style(Style::default().fg(Color::Cyan)),
+    );
+
+    frame.render_widget(search_bar, area);
+}
+
+fn draw_footer(frame: &mut Frame, area: Rect, app: &App) {
+    let search_state = app.get_search_state();
+
+    let help_text = if search_state.is_active && !search_state.results.is_empty() {
+        if app.is_watching() {
+            "Press 'q' to quit | '/' to search | 'n'/'N' for next/prev | Watching for file changes..."
+        } else {
+            "Press 'q' to quit | '/' to search | 'n'/'N' for next/prev | 'r' to reload"
+        }
+    } else if app.is_watching() {
+        "Press 'q' to quit | ↑/↓ or j/k to scroll | '/' to search | Watching for file changes..."
+    } else {
+        "Press 'q' to quit | ↑/↓ or j/k to scroll | '/' to search | 'r' to reload"
     };
 
     let footer = Paragraph::new(Line::from(vec![Span::styled(

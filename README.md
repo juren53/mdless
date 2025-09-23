@@ -7,6 +7,7 @@ A fast, terminal-based markdown file viewer built with Rust.
 - **Real-time rendering**: View markdown files with syntax highlighting
 - **File watching**: Automatically reload when files change (with `-w` flag)
 - **Keyboard navigation**: Scroll through documents with vim-like keybindings
+- **Search functionality**: Find text with vim-like `/` search, navigate with `n`/`N`
 - **Advanced syntax highlighting**: Code blocks with proper language-specific highlighting using syntect
 - **HTML-style code blocks**: Bordered code blocks with language labels and professional styling
 - **Cross-platform**: Works on Linux, macOS, and Windows
@@ -39,6 +40,16 @@ mdless -w README.md
 | --- | ------------------------ |
 | `q` | Quit the application     |
 | `r` | Reload the file manually |
+
+### Search
+
+| Key | Action                        |
+| --- | ----------------------------- |
+| `/` | Start search (vim-like)       |
+| `n` | Go to next search result      |
+| `N` | Go to previous search result  |
+| `Enter` | Exit search mode (keep results) |
+| `Esc` | Cancel search and clear results |
 
 ### Vim-Style Movement
 
