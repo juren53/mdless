@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2025-11-30
+
+### Fixed
+- Arrow key navigation (↑/↓/←/→) now properly detected via ANSI escape sequence handling
+- Home and End key navigation now work correctly
+- Line-by-line scrolling (j/k) now scrolls the viewport immediately, matching true `less` behavior
+- Added `stdscr.keypad(True)` to enable curses keypad mode
+- Set `ESCDELAY=25` for faster escape sequence detection
+
+### Changed
+- Viewport rendering now scrolls immediately with cursor position for responsive navigation
+
 ## [0.1.0] - 2025-11-30
 
 ### Added

@@ -49,6 +49,11 @@ class Navigator:
         """
         curses.curs_set(0)  # Hide cursor
         curses.use_default_colors()
+        stdscr.keypad(True)  # Enable keypad mode for arrow keys
+        stdscr.nodelay(False)  # Blocking mode
+        # Set escape delay to distinguish ESC from escape sequences
+        import os
+        os.environ.setdefault('ESCDELAY', '25')
         
         # Initialize color pairs
         self._init_colors()
@@ -64,6 +69,35 @@ class Navigator:
             # Get input
             try:
                 key = stdscr.getch()
+                
+                # Handle escape sequences for arrow keys and special keys
+                if key == 27:  # ESC
+                    stdscr.nodelay(True)  # Non-blocking to check for sequence
+                    next_key = stdscr.getch()
+                    if next_key == 91:  # '[' - ANSI escape sequence
+                        arrow_key = stdscr.getch()
+                        stdscr.nodelay(False)  # Back to blocking
+                        if arrow_key == 65:  # 'A' - Up arrow
+                            key = curses.KEY_UP
+                        elif arrow_key == 66:  # 'B' - Down arrow
+                            key = curses.KEY_DOWN
+                        elif arrow_key == 67:  # 'C' - Right arrow
+                            key = curses.KEY_RIGHT
+                        elif arrow_key == 68:  # 'D' - Left arrow
+                            key = curses.KEY_LEFT
+                        elif arrow_key == 72:  # 'H' - Home
+                            key = curses.KEY_HOME
+                        elif arrow_key == 70:  # 'F' - End
+                            key = curses.KEY_END
+                        else:
+                            stdscr.nodelay(False)
+                            continue
+                    else:
+                        stdscr.nodelay(False)  # Back to blocking
+                        if next_key == -1:  # Real ESC key (no sequence followed)
+                            key = 27
+                        else:
+                            continue  # Unknown sequence, ignore
                 
                 if self.mode == "search":
                     if not self._handle_search_input(key):
@@ -117,11 +151,9 @@ class Navigator:
         """
         content_height = self.screen_height - 1  # Leave room for status bar
         
-        # Ensure current_line is visible
-        if self.current_line < self.top_line:
-            self.top_line = self.current_line
-        elif self.current_line >= self.top_line + content_height:
-            self.top_line = self.current_line - content_height + 1
+        # In less, the viewport scrolls with the cursor immediately
+        # The top_line follows the current_line directly
+        self.top_line = self.current_line
         
         # Render visible lines
         for i in range(content_height):
