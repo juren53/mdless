@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2025-11-30
+
+### Added
+- Full color support in curses display with ANSI code parsing
+- Colors now properly displayed for all markdown elements:
+  - Headings (blue/cyan shades)
+  - Code blocks and inline code (yellow)
+  - List markers (green)
+  - Links (bright cyan)
+  - Block quotes (magenta)
+  - Bold and italic text styling
+- Support for both basic ANSI color codes and 256-color codes from Pygments
+
+### Fixed
+- Colors from config.yaml now properly rendered in terminal display
+- Added `curses.start_color()` initialization for color support
+- ANSI escape sequences now parsed and converted to curses color attributes
+
 ## [0.1.1] - 2025-11-30
 
 ### Fixed

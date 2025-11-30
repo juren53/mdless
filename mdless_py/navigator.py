@@ -117,11 +117,92 @@ class Navigator:
     def _init_colors(self):
         """Initialize curses color pairs."""
         try:
+            curses.start_color()
+            # Status bar and special modes
             curses.init_pair(1, curses.COLOR_CYAN, -1)  # Status bar
             curses.init_pair(2, curses.COLOR_YELLOW, -1)  # Search highlight
             curses.init_pair(3, curses.COLOR_GREEN, -1)  # Visual selection
+            
+            # Markdown element colors (matching ANSI codes from config)
+            curses.init_pair(4, curses.COLOR_BLUE, -1)    # bright_blue (heading1)
+            curses.init_pair(5, curses.COLOR_BLUE, -1)    # blue (heading2)
+            curses.init_pair(6, curses.COLOR_CYAN, -1)    # cyan (heading3-6)
+            curses.init_pair(7, curses.COLOR_YELLOW, -1)  # yellow (code, code_block)
+            curses.init_pair(8, curses.COLOR_CYAN, -1)    # bright_cyan (link)
+            curses.init_pair(9, curses.COLOR_GREEN, -1)   # green (list_marker)
+            curses.init_pair(10, curses.COLOR_MAGENTA, -1) # magenta (quote)
+            curses.init_pair(11, curses.COLOR_WHITE, -1)  # white (table_border)
+            curses.init_pair(12, curses.COLOR_BLACK, -1)  # bright_black (footnote)
+            curses.init_pair(13, curses.COLOR_RED, -1)    # red
         except Exception:
             pass
+    
+    def _ansi_to_curses_attr(self, ansi_code):
+        """Convert ANSI color code to curses attribute."""
+        # Map basic ANSI codes to curses color pairs
+        ansi_map = {
+            '30': 0,  # black
+            '31': 13, # red
+            '32': 9,  # green
+            '33': 7,  # yellow
+            '34': 5,  # blue
+            '35': 10, # magenta
+            '36': 6,  # cyan
+            '37': 11, # white
+            '90': 12, # bright_black
+            '91': 13, # bright_red
+            '92': 9,  # bright_green
+            '93': 7,  # bright_yellow
+            '94': 4,  # bright_blue
+            '95': 10, # bright_magenta
+            '96': 8,  # bright_cyan
+            '97': 11, # bright_white
+            '1': curses.A_BOLD,     # bold
+            '3': curses.A_DIM,      # italic (closest approximation)
+            '4': curses.A_UNDERLINE, # underline
+        }
+        
+        # Extract codes from ANSI sequence
+        match = re.match(r'\033\[([0-9;]+)m', ansi_code)
+        if match:
+            codes = match.group(1).split(';')
+            
+            # Handle simple single-code sequences
+            if len(codes) == 1:
+                code = codes[0]
+                attr = ansi_map.get(code)
+                if attr is not None:
+                    if isinstance(attr, int) and attr < 20:  # Color pair
+                        return curses.color_pair(attr)
+                    else:  # Attribute like BOLD
+                        return attr
+            
+            # Handle 256-color sequences (38;5;N for foreground, 48;5;N for background)
+            elif len(codes) == 3 and codes[0] in ('38', '48') and codes[1] == '5':
+                color_num = int(codes[2])
+                # Map 256 colors to basic 8 colors (simplified)
+                # 0-7: standard colors, 8-15: bright colors
+                if color_num <= 15:
+                    basic_codes = ['30', '31', '32', '33', '34', '35', '36', '37',
+                                   '90', '91', '92', '93', '94', '95', '96', '97']
+                    if color_num < len(basic_codes):
+                        code = basic_codes[color_num]
+                        attr = ansi_map.get(code)
+                        if attr and isinstance(attr, int) and attr < 20:
+                            return curses.color_pair(attr)
+                # For other 256 colors, use closest basic color
+                else:
+                    # Rough mapping of 256 colors to 8 basic colors
+                    color_map = [
+                        0, 13, 9, 7, 5, 10, 6, 11,  # 0-7
+                        12, 13, 9, 7, 4, 10, 8, 11  # 8-15
+                    ]
+                    if color_num < 16:
+                        return curses.color_pair(color_map[color_num])
+                    # For 16-255, use a simple modulo approach
+                    return curses.color_pair(color_map[color_num % 16])
+        
+        return 0
     
     def _render_screen(self, stdscr):
         """Render current view to screen.
@@ -143,6 +224,67 @@ class Navigator:
         
         stdscr.refresh()
     
+    def _render_line_with_ansi(self, stdscr, y, x, line, max_width):
+        """Render a line with ANSI color codes as curses attributes.
+        
+        Args:
+            stdscr: Curses screen
+            y: Row position
+            x: Column position  
+            line: Line with ANSI codes
+            max_width: Maximum width to render
+        """
+        # Parse ANSI escape sequences (including 256-color codes)
+        ansi_pattern = re.compile(r'\033\[[0-9;]+m')
+        
+        current_attr = 0
+        col = x
+        pos = 0
+        
+        while pos < len(line) and col < x + max_width:
+            # Look for ANSI code
+            match = ansi_pattern.search(line, pos)
+            
+            if match and match.start() == pos:
+                # Found ANSI code at current position
+                ansi_code = match.group()
+                if ansi_code == '\033[0m':  # Reset
+                    current_attr = 0
+                else:
+                    # Convert to curses attribute
+                    new_attr = self._ansi_to_curses_attr(ansi_code)
+                    if new_attr:
+                        current_attr = new_attr
+                pos = match.end()
+            else:
+                # Regular text - find next ANSI code or end of line
+                next_match = ansi_pattern.search(line, pos)
+                end_pos = next_match.start() if next_match else len(line)
+                
+                # Extract text segment
+                text_segment = line[pos:end_pos]
+                
+                # Truncate if needed
+                remaining_width = x + max_width - col
+                if len(text_segment) > remaining_width:
+                    text_segment = text_segment[:remaining_width - 3] + "..."
+                
+                # Render text with current attribute
+                try:
+                    if current_attr:
+                        stdscr.addstr(y, col, text_segment, current_attr)
+                    else:
+                        stdscr.addstr(y, col, text_segment)
+                except curses.error:
+                    pass
+                
+                col += len(text_segment)
+                pos = end_pos
+                
+                # Stop if we've filled the line
+                if col >= x + max_width:
+                    break
+    
     def _render_document(self, stdscr):
         """Render document content.
         
@@ -163,35 +305,26 @@ class Navigator:
             
             line = self.document.rendered_lines[line_num]
             
-            # Strip ANSI codes for curses display (curses doesn't support ANSI)
-            line = strip_ansi(line)
-            
-            # Highlight current line in visual mode
+            # Highlight current line in visual mode or search results
+            override_attr = 0
             if self.visual_mode and self.visual_start is not None:
                 start, end = sorted([self.visual_start, self.current_line])
                 if start <= line_num <= end:
-                    try:
-                        stdscr.attron(curses.color_pair(3))
-                    except Exception:
-                        pass
+                    override_attr = curses.color_pair(3)
+            elif self.search_pattern and line_num in [r[0] for r in self.search_results]:
+                override_attr = curses.color_pair(2)
             
-            # Highlight search results
-            if self.search_pattern and line_num in [r[0] for r in self.search_results]:
-                try:
-                    stdscr.attron(curses.color_pair(2))
-                except Exception:
-                    pass
-            
-            # Truncate line to screen width
-            if len(line) > self.screen_width - 1:
-                line = line[:self.screen_width - 4] + "..."
-            
+            # Render line with ANSI color parsing
             try:
-                stdscr.addstr(i, 0, line)
-                if self.visual_mode:
-                    stdscr.attroff(curses.color_pair(3))
-                if self.search_pattern:
-                    stdscr.attroff(curses.color_pair(2))
+                if override_attr:
+                    # Simple mode: strip ANSI and use override color
+                    clean_line = strip_ansi(line)
+                    if len(clean_line) > self.screen_width - 1:
+                        clean_line = clean_line[:self.screen_width - 4] + "..."
+                    stdscr.addstr(i, 0, clean_line, override_attr)
+                else:
+                    # Parse ANSI codes and render with curses colors
+                    self._render_line_with_ansi(stdscr, i, 0, line, self.screen_width - 1)
             except curses.error:
                 # Ignore errors from writing to last line
                 pass
