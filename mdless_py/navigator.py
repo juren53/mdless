@@ -366,7 +366,7 @@ class Navigator:
             "mdless-py - Keyboard Commands",
             "",
             "Movement:",
-            "  j, ↓          - Scroll down one line",
+            "  j, ↓, Enter   - Scroll down one line",
             "  k, ↑          - Scroll up one line",
             "  d, Ctrl+D     - Scroll down half page",
             "  u, Ctrl+U     - Scroll up half page",
@@ -478,7 +478,7 @@ class Navigator:
             return False
         
         # Movement - single line
-        elif key in (ord('j'), curses.KEY_DOWN):
+        elif key in (ord('j'), curses.KEY_DOWN, 10, 13, curses.KEY_ENTER):  # j, down arrow, or Enter
             self.current_line = min(self.current_line + 1, max_line)
         elif key in (ord('k'), curses.KEY_UP):
             self.current_line = max(self.current_line - 1, 0)
