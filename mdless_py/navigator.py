@@ -124,8 +124,8 @@ class Navigator:
             curses.init_pair(3, curses.COLOR_GREEN, -1)  # Visual selection
             
             # Markdown element colors (matching ANSI codes from config)
-            curses.init_pair(4, curses.COLOR_BLUE, -1)    # bright_blue (heading1)
-            curses.init_pair(5, curses.COLOR_BLUE, -1)    # blue (heading2)
+            curses.init_pair(4, curses.COLOR_BLUE, -1)    # bright_blue
+            curses.init_pair(5, curses.COLOR_BLUE, -1)    # blue
             curses.init_pair(6, curses.COLOR_CYAN, -1)    # cyan (heading3-6)
             curses.init_pair(7, curses.COLOR_YELLOW, -1)  # yellow (code, code_block)
             curses.init_pair(8, curses.COLOR_CYAN, -1)    # bright_cyan (link)

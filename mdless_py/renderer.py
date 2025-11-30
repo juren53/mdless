@@ -189,15 +189,42 @@ class ANSIRenderer(mistune.HTMLRenderer if MISTUNE_AVAILABLE else object):
     
     def list_item(self, text):
         """Render list item."""
+        import re
+        
         color = self._color('list_marker')
-        marker = "•"
+        
+        # Check if this is a task list item
+        # Pattern: <li class="task-list-item"><input ... checked/> or <input ... disabled/>
+        task_pattern = r'<li class="task-list-item"><input[^>]*?(?:checked[^>]*?)?/?>';
+        checkbox_pattern = r'<input class="task-list-item-checkbox"[^>]*?(checked)?[^>]*?/?>'
+        
+        # Remove the li wrapper if present
+        text = re.sub(r'^<li class="task-list-item">', '', text)
+        text = re.sub(r'</li>$', '', text)
+        
+        # Check for checkbox
+        checkbox_match = re.search(checkbox_pattern, text)
+        if checkbox_match:
+            # This is a task list item
+            is_checked = 'checked' in checkbox_match.group(0)
+            # Remove the checkbox HTML
+            text = re.sub(checkbox_pattern, '', text)
+            
+            # Use appropriate marker
+            if is_checked:
+                marker = f"{color}[✓]{self._reset()}"
+            else:
+                marker = f"{color}[ ]{self._reset()}"
+        else:
+            # Regular list item
+            marker = f"{color}•{self._reset()}"
         
         # Remove trailing newlines from text
-        text = text.rstrip('\n')
+        text = text.rstrip('\n').strip()
         
         # Handle multi-line items
         lines = text.split('\n')
-        result = f"{color}{marker}{self._reset()} {lines[0]}\n"
+        result = f"{marker} {lines[0]}\n"
         for line in lines[1:]:
             result += f"  {line}\n"
         
@@ -323,7 +350,40 @@ class MarkdownRenderer:
         Returns:
             List of rendered lines
         """
+        import re
+        
         rendered = self.markdown(markdown_text)
+        
+        # Clean up task list HTML that mistune generates
+        # Pattern: <li class="task-list-item"><input ... checked/>Text</li>
+        def replace_task_item(match):
+            full_match = match.group(0)
+            # Check if 'checked' attribute appears (it will be right before /> or followed by space)
+            # Unchecked: "disabled/>", Checked: "checked/>"
+            is_checked = ' checked' in full_match and 'checked/>' in full_match
+            # Extract text after the input tag
+            text = re.sub(r'<li[^>]*><input[^>]*/?>', '', full_match)
+            text = re.sub(r'</li>', '', text)
+            
+            color = self.config.get_color('list_marker')
+            reset = self.config.get_color('reset')
+            
+            if is_checked:
+                marker = f"{color}[✓]{reset}"
+            else:
+                marker = f"{color}[ ]{reset}"
+            
+            return f"{marker} {text.strip()}"
+        
+        # Replace task list items - match the pattern mistune generates
+        # <li class="task-list-item"><input ... />Text</li>
+        # Preserve newlines by matching them separately
+        rendered = re.sub(
+            r'<li class="task-list-item"><input class="task-list-item-checkbox"[^>]*/>([^<]*)</li>\n?',
+            lambda m: replace_task_item(m) + '\n',
+            rendered
+        )
+        
         lines = rendered.split('\n')
         
         # Remove excessive blank lines (more than 2 consecutive)
