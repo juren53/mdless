@@ -1,4 +1,4 @@
 """mdless-py: A cross-platform CLI Markdown viewer with advanced features."""
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 __author__ = "mdless-py contributors"

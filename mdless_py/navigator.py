@@ -413,12 +413,17 @@ class Navigator:
         Args:
             stdscr: Curses screen
         """
+        from .utils import get_version_info
+        
         status_y = self.screen_height - 1
         
+        # Get version info for right side
+        version_info = get_version_info()
+        
         if self.mode == "search":
-            status = f"/{self.search_input}"
+            left_status = f"/{self.search_input}"
         elif self.status_message:
-            status = self.status_message
+            left_status = self.status_message
             self.status_message = ""  # Clear after display
         else:
             # Normal status: filename, position, visual mode indicator
@@ -427,15 +432,31 @@ class Navigator:
             percent = int((self.current_line / total * 100)) if total > 0 else 0
             
             visual_indicator = " [VISUAL]" if self.visual_mode else ""
-            status = f"{filename} | Line {self.current_line + 1}/{total} ({percent}%){visual_indicator}"
+            left_status = f"{filename} | Line {self.current_line + 1}/{total} ({percent}%){visual_indicator}"
         
-        # Truncate status to screen width
-        if len(status) > self.screen_width - 1:
-            status = status[:self.screen_width - 4] + "..."
+        # Calculate available space for left status (leave room for version on right)
+        version_space = len(version_info) + 1  # +1 for spacing
+        left_max_width = self.screen_width - version_space - 1
+        
+        # Truncate left status if needed
+        if len(left_status) > left_max_width:
+            left_status = left_status[:left_max_width - 3] + "..."
+        
+        # Build full status line with right-justified version
+        padding_width = self.screen_width - len(left_status) - len(version_info) - 1
+        if padding_width < 0:
+            padding_width = 0
+        full_status = left_status + (" " * padding_width) + version_info
+        
+        # Ensure it fits exactly
+        if len(full_status) > self.screen_width - 1:
+            full_status = full_status[:self.screen_width - 1]
+        else:
+            full_status = full_status.ljust(self.screen_width - 1)
         
         try:
             stdscr.attron(curses.color_pair(1) | curses.A_REVERSE)
-            stdscr.addstr(status_y, 0, status.ljust(self.screen_width - 1))
+            stdscr.addstr(status_y, 0, full_status)
             stdscr.attroff(curses.color_pair(1) | curses.A_REVERSE)
         except curses.error:
             pass
