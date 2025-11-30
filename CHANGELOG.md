@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.4] - 2025-11-30
+
+### Added
+- Interactive config editor script (`edit_config.py`) for easy color customization
+- Color documentation (`colors.md`) with complete list of available colors and examples
+- Task list support for GitHub-style checkboxes in markdown
+
+### Fixed
+- Task lists now render as `[✓]` for checked items and `[ ]` for unchecked items
+- Removed raw HTML output for task list items (no more `<li class="task-list-item">`)
+- Config-driven color mapping in navigator (removed hardcoded overrides)
+- Config file loading now respects user color choices properly
+
+### Changed
+- Navigator color system now fully respects user configuration
+- Improved task list rendering with proper checkbox symbols
+
 ## [0.1.3] - 2025-11-30
 
 ### Added
