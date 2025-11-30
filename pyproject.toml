@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mdless-py"
+version = "0.1.0"
+description = "A cross-platform CLI Markdown viewer with advanced features"
+readme = "README_PYTHON.md"
+requires-python = ">=3.8"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "mdless-py contributors"}
+]
+keywords = ["markdown", "viewer", "cli", "terminal", "less"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: Apache Software License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Text Processing :: Markup :: Markdown",
+    "Topic :: Utilities",
+]
+
+dependencies = [
+    "mistune>=3.0.0",
+    "PyYAML>=6.0",
+    "pyperclip>=1.8.0",
+    "colorama>=0.4.6; platform_system=='Windows'",
+    "windows-curses>=2.3.0; platform_system=='Windows'",
+]
+
+[project.optional-dependencies]
+syntax = ["Pygments>=2.14.0"]
+images = ["requests>=2.28.0"]
+all = ["Pygments>=2.14.0", "requests>=2.28.0"]
+
+[project.scripts]
+mdless-py = "mdless_py.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/raykrueger/mdless"
+Repository = "https://github.com/raykrueger/mdless"
+Issues = "https://github.com/raykrueger/mdless/issues"
+
+[tool.setuptools]
+packages = ["mdless_py"]

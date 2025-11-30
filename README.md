@@ -1,168 +1,159 @@
-# mdless
+# mdless-py
 
-A fast, terminal-based markdown file viewer built with Rust.
+A cross-platform CLI Markdown viewer built with Python, featuring advanced navigation, syntax highlighting, and clipboard support.
 
 ## Features
 
-- **Real-time rendering**: View markdown files with syntax highlighting
-- **File watching**: Automatically reload when files change (with `-w` flag)
-- **Keyboard navigation**: Scroll through documents with vim-like keybindings
-- **Search functionality**: Find text with vim-like `/` search, navigate with `n`/`N`
-- **Advanced syntax highlighting**: Code blocks with proper language-specific highlighting using syntect
-- **HTML-style code blocks**: Bordered code blocks with language labels and professional styling
-- **Cross-platform**: Works on Linux, macOS, and Windows
+- **Rich Markdown Rendering**: Full support for GitHub Flavored Markdown including tables, code blocks, and more
+- **Syntax Highlighting**: Code blocks with Pygments support (optional)
+- **Less-like Navigation**: Full keyboard navigation with vim-like keybindings
+- **Visual Selection & Clipboard**: Select text and copy to clipboard with `v` and `y`
+- **Image Display**: Inline image viewing with imgcat, chafa, viu, or timg (optional)
+- **Table of Contents**: Navigate by document sections with `t` or `H`
+- **Search**: Regex search with `/`, navigate results with `n`/`N`
+- **Configurable**: Customizable colors and rendering options via YAML config
+- **Cross-platform**: Works on Windows, macOS, and Linux
 
 ## Installation
 
-### Download from GitHub Releases (Recommended)
-
-Download the latest pre-built binary for your platform from the [releases page](https://github.com/raykrueger/mdless/releases):
-
-**Linux:**
-```bash
-# Download and install (replace with latest version)
-wget https://github.com/raykrueger/mdless/releases/latest/download/mdless-linux-x86_64
-chmod +x mdless-linux-x86_64
-sudo mv mdless-linux-x86_64 /usr/local/bin/mdless
-```
-
-**macOS:**
-```bash
-# For Intel Macs:
-wget https://github.com/raykrueger/mdless/releases/latest/download/mdless-macos-x86_64
-chmod +x mdless-macos-x86_64
-sudo mv mdless-macos-x86_64 /usr/local/bin/mdless
-
-# For Apple Silicon Macs:
-wget https://github.com/raykrueger/mdless/releases/latest/download/mdless-macos-aarch64
-chmod +x mdless-macos-aarch64
-sudo mv mdless-macos-aarch64 /usr/local/bin/mdless
-```
-
-**Windows:**
-Download `mdless.exe` from the releases page and add it to your PATH.
-
-### Install from Crates.io
+### From Source
 
 ```bash
-cargo install mdless
+# Clone or navigate to the repository
+cd mdless
+
+# Install with pip
+pip install -e .
+
+# Or install with all optional dependencies
+pip install -e ".[all]"
 ```
+
+### Requirements
+
+**Required:**
+- Python 3.8+
+- mistune (Markdown parser)
+- PyYAML (configuration)
+- pyperclip (clipboard support)
+- windows-curses (Windows only, for TUI)
+
+**Optional:**
+- Pygments (syntax highlighting)
+- requests (remote image fetching)
+- imgcat/chafa/viu/timg (image display in terminal)
 
 ## Usage
 
-### Basic usage
+### Basic Usage
 
 ```bash
-mdless README.md
+mdless-py README.md
 ```
 
-### Watch mode (auto-reload on file changes)
+### With Custom Config
 
 ```bash
-mdless -w README.md
+mdless-py -c config.yaml document.md
 ```
 
-## Keybindings
+### Create Default Config
 
-### Basic Controls
+```bash
+mdless-py --create-config
+```
 
-| Key | Action                   |
-| --- | ------------------------ |
-| `q` | Quit the application     |
-| `r` | Reload the file manually |
+Config will be created at:
+- Windows: `%APPDATA%\mdless-py\config.yaml`
+- Linux/macOS: `~/.config/mdless-py/config.yaml`
+
+## Keyboard Shortcuts
+
+### Movement
+- `j`, `↓` - Scroll down one line
+- `k`, `↑` - Scroll up one line
+- `d`, `Ctrl+D` - Scroll down half page
+- `u`, `Ctrl+U` - Scroll up half page
+- `f`, `Space`, `Page Down` - Scroll down full page
+- `b`, `Page Up` - Scroll up full page
+- `g`, `Home` - Go to top of document
+- `G`, `End` - Go to bottom of document
 
 ### Search
+- `/` - Start search
+- `n` - Next search result
+- `N` - Previous search result
 
-| Key | Action                        |
-| --- | ----------------------------- |
-| `/` | Start search (vim-like)       |
-| `n` | Go to next search result      |
-| `N` | Go to previous search result  |
-| `Enter` | Exit search mode (keep results) |
-| `Esc` | Cancel search and clear results |
+### Visual Selection & Clipboard
+- `v` - Toggle visual selection mode
+- `y` - Yank (copy) selected text to clipboard
 
-### Vim-Style Movement
+### Navigation
+- `t`, `H` - Show table of contents
+- `=` - Show current position
+- `Ctrl+G` - Show file info
 
-| Key               | Action                   |
-| ----------------- | ------------------------ |
-| `j` / `↓`         | Scroll down one line     |
-| `k` / `↑`         | Scroll up one line       |
-| `J`               | Scroll down 5 lines      |
-| `K`               | Scroll up 5 lines        |
-| `d`               | Scroll down half page    |
-| `u`               | Scroll up half page      |
-| `D`               | Scroll down 10 lines     |
-| `U`               | Scroll up 10 lines       |
-| `f` / `Page Down` | Scroll down full page    |
-| `b` / `Page Up`   | Scroll up full page      |
-| `g` / `Home`      | Go to top of document    |
-| `G` / `End`       | Go to bottom of document |
-| `M`               | Go to middle of document |
+### Other
+- `h`, `?` - Show help
+- `r` - Reload file
+- `q`, `Q` - Quit
+
+## Configuration
+
+Example `config.yaml`:
+
+```yaml
+colors:
+  heading1: bright_blue
+  heading2: blue
+  heading3: cyan
+  code: yellow
+  link: bright_cyan
+  emphasis: italic
+  strong: bold
+
+rendering:
+  enable_tables: true
+  enable_footnotes: true
+  max_width: 100
+
+images:
+  display_tool: auto  # auto, imgcat, chafa, viu, timg, none
+  fetch_remote: false
+  max_width: 80
+
+navigation:
+  search_case_sensitive: false
+  wrap_search: true
+```
 
 ## Development
 
-### Prerequisites
-
-- Rust 1.70 or later
-- Cargo
-
-### Building
+### Running Tests
 
 ```bash
-cargo build --release
+python -m pytest tests/
 ```
 
-### Running tests
+### Running from Source
 
 ```bash
-cargo test
-```
-
-### Code formatting and linting
-
-```bash
-cargo fmt
-cargo clippy
-```
-
-### Pre-commit hooks
-
-The project includes a pre-commit hook that automatically runs formatting checks, linting, compilation verification, and tests before each commit. To install the hook:
-
-```bash
-# Install or reinstall the pre-commit hook
-./scripts/install-hooks.sh
-```
-
-The pre-commit hook will run:
-
-- `cargo check` - Fast compilation check (runs first)
-- `cargo fmt --check` - Verify code formatting
-- `cargo clippy` - Run linter with warnings as errors
-- `cargo test` - Run all tests
-
-To run the checks manually without committing:
-
-```bash
-./scripts/pre-commit-checks.sh
-```
-
-To bypass the hook for a specific commit (not recommended):
-
-```bash
-git commit --no-verify
+python -m mdless_py README.md
 ```
 
 ## License
 
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
+Apache License 2.0 - See LICENSE file for details
 
-    http://www.apache.org/licenses/LICENSE-2.0
+## Comparison with Rust Version
 
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
+This Python implementation offers:
+- ✅ All basic less navigation conventions
+- ✅ Visual selection mode with clipboard support
+- ✅ More flexible configuration system
+- ✅ Easier to extend and customize
+
+The Rust version offers:
+- ⚡ Faster startup and performance
+- 📦 Smaller binary size
+- 🔄 File watching with auto-reload
