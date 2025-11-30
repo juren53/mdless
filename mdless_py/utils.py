@@ -47,3 +47,38 @@ def strip_ansi(text: str) -> str:
     import re
     ansi_escape = re.compile(r'\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])')
     return ansi_escape.sub('', text)
+
+
+def get_version_info() -> str:
+    """Get version and last commit date.
+    
+    Returns:
+        String like "v0.1.2 (2025-11-30)" or just "v0.1.2" if git not available
+    """
+    from . import __version__
+    
+    # Try to get git commit date
+    try:
+        import subprocess
+        from pathlib import Path
+        
+        # Find the git repo root (look for .git directory)
+        current_dir = Path(__file__).parent
+        while current_dir != current_dir.parent:
+            if (current_dir / '.git').exists():
+                result = subprocess.run(
+                    ['git', 'log', '-1', '--format=%cd', '--date=short'],
+                    cwd=current_dir,
+                    capture_output=True,
+                    text=True,
+                    timeout=1
+                )
+                if result.returncode == 0:
+                    date = result.stdout.strip()
+                    return f"v{__version__} ({date})"
+                break
+            current_dir = current_dir.parent
+    except Exception:
+        pass
+    
+    return f"v{__version__}"
