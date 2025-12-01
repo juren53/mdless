@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interactive config editor script (`edit_config.py`) for easy color customization
 - Color documentation (`colors.md`) with complete list of available colors and examples
 - Task list support for GitHub-style checkboxes in markdown
+- Enter key for line-down navigation (matching traditional `less` behavior)
 
 ### Fixed
 - Task lists now render as `[✓]` for checked items and `[ ]` for unchecked items
