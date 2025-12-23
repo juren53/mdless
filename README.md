@@ -5,6 +5,7 @@ A cross-platform CLI Markdown viewer built with Python, featuring advanced navig
 ## Features
 
 - **Rich Markdown Rendering**: Full support for GitHub Flavored Markdown including tables, code blocks, and more
+- **Word Wrapping**: Automatic word wrapping to fit terminal width, preserving formatting
 - **Syntax Highlighting**: Code blocks with Pygments support (optional)
 - **Less-like Navigation**: Full keyboard navigation with vim-like keybindings
 - **Visual Selection & Clipboard**: Select text and copy to clipboard with `v` and `y`
@@ -102,6 +103,8 @@ Config will be created at:
 
 Example `config.yaml`:
 
+**Note:** The `max_width` setting controls word wrapping. Set to `0` (default) to use 80-character width, or specify a custom width (e.g., `100` for 100 characters).
+
 ```yaml
 colors:
   heading1: bright_blue
@@ -115,7 +118,7 @@ colors:
 rendering:
   enable_tables: true
   enable_footnotes: true
-  max_width: 100
+  max_width: 0  # 0 = 80 characters (default), or set custom width
 
 images:
   display_tool: auto  # auto, imgcat, chafa, viu, timg, none

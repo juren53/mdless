@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.5] - 2025-12-23
+
+### Added
+- Word wrapping for long lines at 80 characters (default)
+- ANSI-aware text wrapping that preserves formatting across line breaks
+- Configurable wrap width via `max_width` setting (0 = 80 chars default)
+
+### Changed
+- Text now wraps in paragraphs, list items, and block quotes
+- Default wrap width is 80 characters instead of terminal width
+- Long sentences no longer run off the right edge of screen
+
 ## [0.1.4] - 2025-11-30
 
 ### Added

@@ -96,8 +96,13 @@ Keyboard shortcuts:
         config_file = Path(args.config) if args.config else None
         config = Config(config_file)
         
-        # Render markdown
-        renderer = MarkdownRenderer(config)
+        # Check if max_width is configured, otherwise use 80
+        max_width = config.get('rendering.max_width', 0)
+        if max_width == 0:
+            max_width = 80  # Default to 80 characters
+        
+        # Render markdown with configured width
+        renderer = MarkdownRenderer(config, terminal_width=max_width)
         rendered_lines = renderer.render_file(file_path)
         
         # Create document

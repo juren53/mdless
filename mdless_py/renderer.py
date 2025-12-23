@@ -117,7 +117,25 @@ class ANSIRenderer(mistune.HTMLRenderer if MISTUNE_AVAILABLE else object):
     # Block elements
     def paragraph(self, text):
         """Render paragraph."""
-        result = text + "\n"
+        # Word wrap the paragraph text if max_width is set
+        if self.max_width > 0:
+            from .utils import wrap_text_with_ansi
+            
+            # Split into lines and wrap each one
+            lines = text.split('\n')
+            wrapped_lines = []
+            for line in lines:
+                if not line.strip():
+                    wrapped_lines.append(line)
+                    continue
+                
+                # Use ANSI-aware wrapping
+                wrapped = wrap_text_with_ansi(line, self.max_width)
+                wrapped_lines.extend(wrapped.split('\n'))
+            
+            result = "\n".join(wrapped_lines) + "\n"
+        else:
+            result = text + "\n"
         
         # Add footnotes if any
         if self.footnotes:
@@ -179,6 +197,22 @@ class ANSIRenderer(mistune.HTMLRenderer if MISTUNE_AVAILABLE else object):
         color = self._color('quote')
         lines = text.strip().split('\n')
         result = ""
+        
+        # Wrap long lines if max_width is set
+        if self.max_width > 0:
+            from .utils import wrap_text_with_ansi
+            # Account for quote marker "│ " (2 characters)
+            quote_width = self.max_width - 2
+            if quote_width > 10:  # Ensure reasonable width
+                wrapped_lines = []
+                for line in lines:
+                    if line.strip():
+                        wrapped = wrap_text_with_ansi(line, quote_width)
+                        wrapped_lines.extend(wrapped.split('\n'))
+                    else:
+                        wrapped_lines.append(line)
+                lines = wrapped_lines
+        
         for line in lines:
             result += f"{color}│ {line}{self._reset()}\n"
         return result + "\n"
@@ -222,8 +256,25 @@ class ANSIRenderer(mistune.HTMLRenderer if MISTUNE_AVAILABLE else object):
         # Remove trailing newlines from text
         text = text.rstrip('\n').strip()
         
-        # Handle multi-line items
+        # Handle multi-line items with wrapping
         lines = text.split('\n')
+        
+        # Wrap long lines if max_width is set
+        if self.max_width > 0:
+            from .utils import wrap_text_with_ansi
+            # Account for marker and space (approx 2 characters for "• ")
+            # Continuation lines have 2 spaces indent
+            item_width = self.max_width - 2
+            if item_width > 10:  # Ensure reasonable width
+                wrapped_lines = []
+                for line in lines:
+                    if line.strip():
+                        wrapped = wrap_text_with_ansi(line, item_width)
+                        wrapped_lines.extend(wrapped.split('\n'))
+                    else:
+                        wrapped_lines.append(line)
+                lines = wrapped_lines
+        
         result = f"{marker} {lines[0]}\n"
         for line in lines[1:]:
             result += f"  {line}\n"
@@ -310,11 +361,12 @@ class ANSIRenderer(mistune.HTMLRenderer if MISTUNE_AVAILABLE else object):
 class MarkdownRenderer:
     """High-level markdown renderer."""
     
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, terminal_width: int = 0):
         """Initialize markdown renderer.
         
         Args:
             config: Configuration object
+            terminal_width: Terminal width for wrapping (optional)
         """
         self.config = config
         self.highlighter = SyntaxHighlighter()
@@ -328,8 +380,10 @@ class MarkdownRenderer:
             max_height=img_config.get('max_height', 24)
         )
         
-        # Get max width
+        # Get max width - use terminal width if config max_width is 0
         max_width = config.get('rendering.max_width', 0)
+        if max_width == 0 and terminal_width > 0:
+            max_width = terminal_width
         
         if not MISTUNE_AVAILABLE:
             raise ImportError("mistune is required for markdown rendering")
